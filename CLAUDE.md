@@ -31,21 +31,30 @@ celular. No son analistas. La página tiene que ser entendible en un scroll.
    informar y armar al cliente contra alguien, informa.
    Cubierto por `test/tono.test.mjs`.
 
-3. **No prometer resultados.** El copy dice "recibirías aprox.", nunca
+3. **Nunca inventar precisión, y nunca desincentivar el reporte.** Si falta
+   un dato que mueve el resultado —sobre todo el deducible— se muestra un
+   **rango** declarado y se dice qué falta, jamás una cifra única. Y ningún
+   resultado, ni el que da cero, puede sonar a veredicto: el aviso a la
+   aseguradora es gratis y el plazo se vence, así que la herramienta siempre
+   empuja a reportar. Cubierto por `test/tono.test.mjs` y por las pruebas de
+   rango en `test/motor.test.mjs`. Antes de publicar cambios que toquen
+   cifras, lee `VALIDACION.md`.
+
+4. **No prometer resultados.** El copy dice "recibirías aprox.", nunca
    "recibirás". El único documento válido es el clausulado firmado. El
    descargo del pie no se quita ni se achica.
 
-4. **Cero telemetría, cero cookies, cero login, cero red.** El archivo tiene
+5. **Cero telemetría, cero cookies, cero login, cero red.** El archivo tiene
    que funcionar abierto con doble clic, sin internet, en un celular con
    datos agotados. No agregues analíticas, fuentes remotas obligatorias ni
    llamadas a APIs. Las tipografías de Google son la única excepción y
    degradan a las del sistema.
 
-5. **Nada de `localStorage` para datos de la persona.** Si alguien comparte el
+6. **Nada de `localStorage` para datos de la persona.** Si alguien comparte el
    computador —muy común en una emergencia— no queremos dejar sus cifras ahí.
    El estado vive en memoria y se pierde al recargar. Es a propósito.
 
-6. **Español colombiano, tono de vecino que sabe.** Frases cortas. Nada de
+7. **Español colombiano, tono de vecino que sabe.** Frases cortas. Nada de
    "asegurado", "tomador" ni "siniestro" sin explicarlos primero. Si un
    párrafo necesita releerse, está mal escrito.
 
@@ -138,7 +147,7 @@ Está cubierto por `test/build.test.mjs`.
 ## Flujo de trabajo
 
 ```bash
-npm test        # 19 pruebas: motor + empaquetado + tono
+npm test        # 24 pruebas: motor, rangos, empaquetado y tono
 npm run build   # genera dist/hasta-donde.html
 npm run check   # ambas: úsalo antes de cada commit
 ```

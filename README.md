@@ -13,7 +13,7 @@ Nació después del sismo del 10 de agosto de 2026.
 ## Empezar
 
 ```bash
-npm test        # 19 pruebas: motor, empaquetado y tono
+npm test        # 24 pruebas: motor, rangos, empaquetado y tono
 npm run build   # → dist/hasta-donde.html
 npm run check   # ambas
 ```
