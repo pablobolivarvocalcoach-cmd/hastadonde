@@ -15,13 +15,27 @@ Nació después del sismo del 10 de agosto de 2026.
 ## Empezar
 
 ```bash
-npm test        # 25 pruebas: motor, rangos, empaquetado y tono
+npm install     # trae pdfjs-dist, solo para construir — la página no la necesita
+npm test        # motor, rangos, empaquetado, tono y lector de PDF
 npm run build   # → dist/hasta-donde.html y docs/index.html (copia idéntica, para GitHub Pages)
 npm run check   # ambas
 ```
 
-No hay dependencias. Solo necesitas Node 18 o superior para construir; la
-página en sí no necesita nada.
+La página publicada no tiene dependencias: es un archivo autocontenido. Para
+construirla necesitas Node 18 o superior y `npm install`, que trae `pdfjs-dist`
+(el lector de PDF en el navegador — ver más abajo). Esa librería queda
+embebida dentro del único archivo HTML; nadie que use la página instala nada.
+
+## Lector de PDF (prototipo)
+
+Puedes subir el PDF de tu póliza y la herramienta te muestra qué encontró
+— deducible de terremoto, vigencia, valor asegurado — con la página y la
+línea exacta para que lo verifiques. El PDF se lee completo en tu navegador
+con [pdf.js](https://mozilla.github.io/pdf.js/): nunca se sube a ningún
+servidor ni se guarda. Solo funciona con PDF de texto (no fotos ni
+escaneos), y si un dato no se puede leer con confianza, la herramienta lo
+dice en vez de inventarlo. Es una primera versión: todavía no llena el
+cuestionario por ti.
 
 ## Si eres asesor de seguros
 

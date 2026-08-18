@@ -20,6 +20,7 @@
     <nav class="navlinks">
       <a href="#deducible">Deducibles</a>
       <a href="#diagnostico">Diagnóstico</a>
+      <a href="#lector">Leer mi PDF</a>
       <a href="#biblioteca">Clausulados</a>
       <a href="#glosario">Glosario</a>
       <a href="#plazos">Plazos</a>
@@ -115,6 +116,23 @@
     </div>
 
     <div class="res" id="res"></div>
+  </div>
+</section>
+
+<!-- LECTOR DE PDF (prototipo) -->
+<section id="lector">
+  <div class="wrap">
+    <span class="eyebrow">Prototipo · en pruebas, todavía no llena el cuestionario</span>
+    <h2 style="font-size:clamp(28px,5vw,46px);max-width:22ch">Lee tu póliza en PDF</h2>
+    <p class="lede" style="margin-top:16px">Sube el PDF de tu póliza (carátula + clausulado, como te lo manda la aseguradora) y te mostramos qué encontramos, con la página y la línea exacta de donde salió, para que lo verifiques tú mismo. Solo funciona con PDF de texto: si es una foto o un escaneo, te lo decimos y no inventamos nada.</p>
+    <p class="mono" style="font-size:13px;color:var(--tinta2);margin-top:8px">Tu PDF no sale de este navegador. No se sube a ningún servidor, no se guarda: se pierde al recargar la página.</p>
+
+    <div class="cta-row no-print" style="margin-top:20px">
+      <label class="btn verde" style="cursor:pointer">Elegir mi póliza en PDF<input type="file" id="filePdf" accept="application/pdf" class="oculto"></label>
+    </div>
+
+    <div id="lectorEstado" style="margin-top:20px"></div>
+    <div id="lectorResultado"></div>
   </div>
 </section>
 
