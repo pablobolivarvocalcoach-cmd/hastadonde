@@ -109,12 +109,90 @@ function buscarValorAsegurado(lineas) {
   return null;
 }
 
-const BUSCADORES = [buscarDeducibleTerremoto, buscarVigencia, buscarValorAsegurado];
+const RX_CODIGO = /\b([A-Z]{2,}[-/]?\d{2,}[-/A-Z0-9]*)\b/;
+
+function buscarCodigoClausulado(lineas) {
+  const rx = /c[oó]digo/i;
+  const rxCtx = /clausulado|registro|dep[oó]sito/i;
+  for (const l of lineas) {
+    if (rx.test(l.texto) && rxCtx.test(l.texto)) {
+      const cod = l.texto.match(RX_CODIGO);
+      if (cod) {
+        return { campo: 'Código de clausulado', codigo: cod[1],
+          pagina: l.pagina, linea: l.linea, texto: l.texto };
+      }
+    }
+  }
+  return null;
+}
+
+const BUSCADORES = [buscarDeducibleTerremoto, buscarVigencia, buscarValorAsegurado, buscarCodigoClausulado];
 
 /* Corre todos los buscadores sobre las líneas de todo el documento.
    `lineas` = [{ pagina, linea, texto }], ya aplanadas y numeradas. */
 function extraerCandidatos(lineas) {
   return BUSCADORES.map(f => f(lineas)).filter(Boolean);
+}
+
+/* ============================================================
+   Fragmentos del clausulado — exclusiones y definiciones. A diferencia de
+   los candidatos de arriba (un dato puntual, una línea, alta precisión),
+   esto es texto legal en prosa: no hay forma confiable de decir "esta es
+   LA exclusión completa" solo con patrones. Por eso esto NUNCA se presenta
+   como un dato verificado: es un candidato de dónde mirar, con la página
+   exacta, para que la persona lea el párrafo completo en su PDF. Ver
+   CLAUDE.md — misma lógica que "mejor no encontrar que leer mal", aplicada
+   a bloques de texto en vez de a una cifra.
+   ============================================================ */
+const TERMINOS_CLAVE = [
+  ['Pérdida total', /p[ée]rdida\s+total/i],
+  ['Reposición a nuevo', /reposici[oó]n\s+a\s+nuevo/i],
+  ['Valor real', /valor\s+real/i],
+  ['Primer riesgo absoluto', /primer\s+riesgo\s+absoluto/i],
+  ['Valor admitido', /valor\s+admitido/i],
+  ['Regla proporcional / infraseguro', /regla\s+proporcional|infraseguro/i]
+];
+
+/* Para cada término clave, la PRIMERA vez que aparece en el documento, con
+   dos líneas de contexto (misma página, nunca cruza a la siguiente: un
+   párrafo cortado a la mitad es peor que no mostrar nada). */
+function buscarDefiniciones(lineas) {
+  const hallazgos = [];
+  for (const [termino, rx] of TERMINOS_CLAVE) {
+    const idx = lineas.findIndex(l => rx.test(l.texto));
+    if (idx === -1) continue;
+    const pagina = lineas[idx].pagina;
+    const contexto = lineas
+      .slice(idx, idx + 3)
+      .filter(l => l.pagina === pagina)
+      .map(l => l.texto)
+      .join(' ');
+    hallazgos.push({ termino, pagina, linea: lineas[idx].linea, contexto });
+  }
+  return hallazgos;
+}
+
+const LIMITE_BLOQUE_EXCLUSIONES = 25;
+
+/* Busca un encabezado de "exclusiones" (línea corta, mayúscula o casi) y
+   junta las líneas que siguen en la MISMA página, hasta topar con lo que
+   parece el siguiente encabezado o un límite de líneas — nunca cruza de
+   página en este prototipo, para no inventar continuidad que no verificó. */
+function buscarExclusiones(lineas) {
+  const esEncabezado = t => t.length < 60 && /^[A-ZÁÉÍÓÚÑ0-9\s.,:-]{6,}$/.test(t);
+  const idx = lineas.findIndex(l => /^exclusiones?\b/i.test(l.texto.trim()) && l.texto.trim().length < 60);
+  if (idx === -1) return null;
+
+  const pagina = lineas[idx].pagina;
+  const items = [];
+  for (let i = idx + 1; i < lineas.length && items.length < LIMITE_BLOQUE_EXCLUSIONES; i++) {
+    const l = lineas[i];
+    if (l.pagina !== pagina) break;
+    if (esEncabezado(l.texto.trim())) break;
+    items.push(l.texto);
+  }
+  if (!items.length) return null;
+  return { pagina, linea: lineas[idx].linea, items };
 }
 
 /* Aplana páginas [[linea,...], ...] en una sola lista con página y número
@@ -196,6 +274,8 @@ async function leerPdf(file) {
 
   const calidad = calidadTexto(lineas);
   const candidatos = extraerCandidatos(lineas);
+  const definiciones = buscarDefiniciones(lineas);
+  const exclusiones = buscarExclusiones(lineas);
 
   return {
     ok: true,
@@ -204,8 +284,10 @@ async function leerPdf(file) {
     calidad,
     dudoso: calidad < UMBRAL_CALIDAD,
     lineas,
-    candidatos
+    candidatos,
+    definiciones,
+    exclusiones
   };
 }
 
-export { agruparLineas, aplanarPaginas, calidadTexto, extraerCandidatos, buscarDeducibleTerremoto, buscarVigencia, buscarValorAsegurado, pareceImagen, leerPdf };
+export { agruparLineas, aplanarPaginas, calidadTexto, extraerCandidatos, buscarDeducibleTerremoto, buscarVigencia, buscarValorAsegurado, buscarCodigoClausulado, buscarDefiniciones, buscarExclusiones, pareceImagen, leerPdf };

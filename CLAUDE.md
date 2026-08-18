@@ -183,12 +183,23 @@ persona lo verifique. Detalles que importan si tocas esto:
   para reconstruirla. `node_modules/` está en `.gitignore`;
   `package-lock.json` sí se commitea para reproducibilidad.
 - Los buscadores de campos (`buscarDeducibleTerremoto`, `buscarVigencia`,
-  `buscarValorAsegurado`) son puros y solo aceptan coincidencias de alta
-  precisión en la **misma línea reconstruida**: si el dato está en una celda
-  de tabla que pdf.js extrae en otro orden, o repartido en dos líneas, no lo
-  encuentran — y eso es a propósito. Mejor un "no lo encontré" que un dato
-  mal leído. Si agregas un buscador nuevo, escribe el test primero en
-  `test/lector.test.mjs`, igual que con el motor.
+  `buscarValorAsegurado`, `buscarCodigoClausulado`) son puros y solo aceptan
+  coincidencias de alta precisión en la **misma línea reconstruida**: si el
+  dato está en una celda de tabla que pdf.js extrae en otro orden, o
+  repartido en dos líneas, no lo encuentran — y eso es a propósito. Mejor un
+  "no lo encontré" que un dato mal leído. Si agregas un buscador nuevo,
+  escribe el test primero en `test/lector.test.mjs`, igual que con el motor.
+- **Dos niveles de confianza, no los mezcles.** Los buscadores de arriba
+  devuelven un dato puntual (un número, una fecha) y se muestran como
+  "esto encontramos". `buscarDefiniciones()` y `buscarExclusiones()` son
+  distintos: el clausulado ahí es prosa legal, no hay patrón que garantice
+  "esta es LA exclusión completa". Por eso esas dos siempre se etiquetan
+  como **candidato** en la UI ("esto no es la exclusión completa, es dónde
+  empieza") y nunca como un dato verificado. Si escribes un buscador nuevo
+  de este segundo tipo, mantenlo igual de honesto sobre lo que no garantiza.
+  `buscarExclusiones()` nunca cruza de página al juntar el bloque: un
+  párrafo cortado a la mitad por un salto de página es peor que no
+  mostrarlo.
 
 ## Flujo de trabajo
 
