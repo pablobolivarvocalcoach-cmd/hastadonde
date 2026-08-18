@@ -389,6 +389,18 @@ const copCorto = n => n >= 1e9 ? '$' + (n/1e9).toFixed(n%1e9===0?0:1) + ' mil M'
                     : n >= 1e6 ? '$' + (n/1e6).toFixed(n%1e6===0?0:1) + ' M'
                     : cop(n);
 
+/* Rangos de deducible de terremoto por ramo. NO son el dato de ninguna
+   póliza: son el piso y el techo que se ven en el mercado. Solo se usan
+   cuando la persona declara que no conoce su deducible, y en ese caso el
+   resultado SIEMPRE se muestra como rango, nunca como cifra única.
+   Al verificar contra clausulados reales, ajusta estos números aquí. */
+const RANGO_DEDUCIBLE = {
+  ph:    { min:{pct:1,   smmlv:3}, max:{pct:3, smmlv:10} },
+  pyme:  { min:{pct:1,   smmlv:2}, max:{pct:3, smmlv:6}  },
+  hogar: { min:{pct:1,   smmlv:1}, max:{pct:2, smmlv:3}  },
+  auto:  { min:{pct:0.5, smmlv:1}, max:{pct:2, smmlv:2}  }
+};
+
 
 
 /* MOTOR DE CÁLCULO — puro, sin DOM, cubierto por test/motor.test.mjs.
@@ -434,6 +446,18 @@ function calcular(d) {
     pctRecuperado: P > 0 ? indem / P * 100 : 0,
     deTuBolsillo: P - indem
   };
+}
+
+/* Cuando no se conoce el deducible, se devuelven los dos extremos del
+   mercado. `optimista` es el mejor caso posible, `pesimista` el peor.
+   Mostrar solo uno de los dos sería inventar precisión. */
+function calcularRango(d, ramo) {
+  const r = RANGO_DEDUCIBLE[ramo] || RANGO_DEDUCIBLE.hogar;
+  const con = e => calcular({ ...d, dedPct: e.pct, dedMinSMMLV: e.smmlv });
+  const a = con(r.min), b = con(r.max);
+  const optimista = a.indemnizacion >= b.indemnizacion ? a : b;
+  const pesimista = a.indemnizacion >= b.indemnizacion ? b : a;
+  return { optimista, pesimista, rango: r, esRango: true };
 }
 
 
@@ -534,8 +558,11 @@ const NUM = (l1,l2,l3,p1,p2,p3) => ({
 
 const PASO_DEDUCIBLE = {
   tipo:'campos', preg:'El deducible de terremoto',
-  ayuda:'Búscalo en la carátula bajo “deducibles”. Suele decir algo como “2% del valor asegurable del ítem afectado, mínimo 3 SMMLV”. Si no lo encuentras, deja los valores de referencia y marca la duda en tu reporte.',
+  ayuda:'Búscalo en la carátula bajo “deducibles”. Suele decir algo como “2% del valor asegurable del ítem afectado, mínimo 3 SMMLV”. Si no lo tienes, dilo: preferimos darte un rango honesto antes que un número inventado.',
   campos:[
+    {k:'dedConocido', l:'¿Tienes el deducible a la vista?', tipo:'select',
+     ops:[['si','Sí, lo estoy leyendo en la carátula'],['no','No lo encuentro o no lo sé']],
+     pista:'Si respondes que no, te mostramos un rango en vez de una cifra falsa.'},
     {k:'baseDeducible', l:'Se calcula sobre', tipo:'select',
      ops:[['valorAsegurado','El valor asegurado del bien (lo más común)'],['perdida','El valor de la pérdida']],
      pista:'Esta sola línea puede cambiar tu indemnización en decenas de millones.'},
@@ -971,7 +998,9 @@ function avanzar() {
    ============================================================ */
 function mostrarResultado() {
   const d = estado.datos, ramo = RAMOS[estado.ramo];
-  const r = calcular(d);
+  const sinDato = d.dedConocido === 'no';
+  const rg = sinDato ? calcularRango(d, estado.ramo) : null;
+  const r = sinDato ? rg.pesimista : calcular(d);
   const sem = ramo.reglas(d);
   const respuestas = generarRespuestas(d, r);
   const docs = [...DOCUMENTOS.comun, ...(DOCUMENTOS[estado.ramo] || [])];
@@ -980,7 +1009,7 @@ function mostrarResultado() {
   $('res').innerHTML = `
     <div style="margin-top:40px">
       <span class="eyebrow">Tu radiografía · ${ramo.nombre} · ${new Date().toLocaleDateString('es-CO')}</span>
-      <h2 style="font-size:clamp(26px,4.6vw,42px);max-width:20ch">${titular(r)}</h2>
+      <h2 style="font-size:clamp(26px,4.6vw,42px);max-width:22ch">${titular(r, rg)}</h2>
 
       <div class="cinta-caja" style="margin-top:26px">
         <div class="cinta-top">
@@ -997,17 +1026,28 @@ function mostrarResultado() {
         </div>
       </div>
 
+      ${sinDato ? `<div class="aviso" style="background:var(--fuera-luz);border-color:var(--fuera)">
+        <b>Ojo: esta no es tu cifra, es un rango.</b>
+        Como no tenemos tu deducible, calculamos los dos extremos que se ven en el mercado para ${ramo.nombre.toLowerCase()}:
+        desde ${RANGO_DEDUCIBLE[estado.ramo].min.pct}% con mínimo de ${RANGO_DEDUCIBLE[estado.ramo].min.smmlv} SMMLV, hasta ${RANGO_DEDUCIBLE[estado.ramo].max.pct}% con mínimo de ${RANGO_DEDUCIBLE[estado.ramo].max.smmlv} SMMLV.
+        Tu póliza tiene un número exacto y está en la carátula. Hasta que lo tengas, trata esto como una idea de magnitud, no como una respuesta.
+      </div>` : ''}
+
       <div class="res-cifras">
+        ${sinDato ? `
+        <div class="cifra destacada"><span class="eyebrow">En el peor caso</span><div class="num">${cop(rg.pesimista.indemnizacion)}</div></div>
+        <div class="cifra destacada"><span class="eyebrow">En el mejor caso</span><div class="num">${cop(rg.optimista.indemnizacion)}</div></div>
+        <div class="cifra"><span class="eyebrow">Dato que falta</span><div class="num" style="font-size:20px;line-height:1.3">Tu deducible de terremoto</div></div>` : `
         <div class="cifra destacada"><span class="eyebrow">Recibirías aprox.</span><div class="num">${cop(r.indemnizacion)}</div></div>
         <div class="cifra"><span class="eyebrow">Sale de tu bolsillo</span><div class="num">${cop(r.deTuBolsillo)}</div></div>
-        <div class="cifra"><span class="eyebrow">Deducible aplicado</span><div class="num">${cop(r.deducibleTeorico)}</div></div>
+        <div class="cifra"><span class="eyebrow">Deducible aplicado</span><div class="num">${cop(r.deducibleTeorico)}</div></div>`}
       </div>
 
       ${r.hayInfra ? `<div class="aviso"><b>Tienes infraseguro: estás asegurado al ${(r.factor*100).toFixed(0)}% de lo que vale.</b>
         Por eso te descuentan ${cop(r.porInfraseguro)} antes de aplicar el deducible, aunque la pérdida sea parcial. Es la regla proporcional del art. 1102 del Código de Comercio. Actualizar el valor asegurado en la renovación es la corrección más barata que existe.</div>` : ''}
       ${r.mandaMinimo ? `<div class="aviso"><b>En tu caso manda el deducible mínimo, no el porcentaje.</b>
         El mínimo en SMMLV (${cop((+d.dedMinSMMLV||0)*CONFIG.SMMLV)}) resultó mayor que el porcentaje pactado. Por eso el descuento es más alto de lo que esperabas.</div>` : ''}
-      ${r.indemnizacion === 0 ? `<div class="aviso"><b>Con estos números la indemnización sería cero.</b>
+      ${r.indemnizacion === 0 ? `<div class="aviso"><b>Repórtalo de todas formas.</b>
         El deducible absorbe toda la pérdida. Esto no significa que no debas avisar el siniestro: avísalo igual, porque los números cambian cuando el ajustador valora el daño real, y porque el aviso protege tus plazos.</div>` : ''}
 
       <h3 style="font-size:24px;margin:34px 0 12px">Tu semáforo</h3>
@@ -1059,9 +1099,9 @@ function mostrarResultado() {
     `Valor real estimado: ${cop(+d.valorReal || 0)}\n` +
     `Pérdida estimada: ${cop(r.perdida)}\n` +
     `Deducible informado: ${(+d.dedPct || 0)}% sobre ${d.baseDeducible === 'perdida' ? 'la pérdida' : 'el valor asegurado'}, mínimo ${(+d.dedMinSMMLV || 0)} SMMLV\n\n` +
-    `Deducible calculado: ${cop(r.deducibleTeorico)}\n` +
+    `Deducible calculado: ${sinDato ? 'DATO FALTANTE — el cliente no conoce su deducible' : cop(r.deducibleTeorico)}\n` +
     (r.hayInfra ? `Infraseguro: asegurado al ${(r.factor * 100).toFixed(0)}% (${cop(r.porInfraseguro)})\n` : '') +
-    `Indemnización estimada: ${cop(r.indemnizacion)}\n\n` +
+    `Indemnización estimada: ${sinDato ? `entre ${cop(rg.pesimista.indemnizacion)} y ${cop(rg.optimista.indemnizacion)} (rango de mercado)` : cop(r.indemnizacion)}\n\n` +
     `Documentos pendientes: ${docs.length - marcados().length} de ${docs.length}\n` +
     marcados('pendientes').map(t => `- ${t}`).join('\n') +
     `\n\nCifras ingresadas por el cliente. Sujetas a verificación contra la carátula y el clausulado.`;
@@ -1097,8 +1137,11 @@ function mostrarResultado() {
   $('res').scrollIntoView({behavior:'smooth'});
 }
 
-function titular(r) {
-  if (r.indemnizacion === 0) return 'Con estos números, la póliza no pagaría nada.';
+function titular(r, rg) {
+  if (rg) return rg.optimista.indemnizacion === 0
+    ? 'Falta un dato clave, y sin él no podemos decirte una cifra.'
+    : `Entre ${cop(rg.pesimista.indemnizacion)} y ${cop(rg.optimista.indemnizacion)}, según cuál sea tu deducible.`;
+  if (r.indemnizacion === 0) return 'Con los datos que pusiste, el deducible se llevaría toda la pérdida.';
   if (r.pctRecuperado < 35)  return `Recuperarías cerca de un tercio: ${cop(r.indemnizacion)}.`;
   if (r.pctRecuperado < 70)  return `Recuperarías ${cop(r.indemnizacion)} de ${cop(r.perdida)}.`;
   return `Tu póliza responde bien: ${cop(r.indemnizacion)}.`;
@@ -1108,7 +1151,13 @@ function titular(r) {
 function generarRespuestas(d, r) {
   const a = [];
 
-  a.push(['¿Por qué el deducible es tan alto?',
+  if (d.dedConocido === 'no') {
+    a.push(['¿Por qué me dan un rango y no una cifra?',
+      'Porque tu deducible es el número que más mueve el resultado y no lo tenemos. Darte una cifra exacta sin ese dato sería inventarla, y con eso se toman malas decisiones. En cuanto aparezca la carátula, el cálculo deja de ser un rango.']);
+    a.push(['¿Dónde encuentro ese número?',
+      'En la primera hoja de la póliza, la carátula, bajo el título “deducibles”. Es una línea que dice algo como “2% del valor asegurable del ítem afectado, mínimo 3 SMMLV”. Si no tienes la póliza, la aseguradora o tu asesor te la reenvían.']);
+  }
+  if (d.dedConocido !== 'no') a.push(['¿Por qué el deducible es tan alto?',
     d.baseDeducible === 'perdida'
       ? `Tu deducible se calcula sobre el valor de la pérdida: ${(+d.dedPct||0)}% de ${cop(r.perdida)}. Además hay un mínimo en salarios mínimos, y se aplica el que resulte mayor de los dos.`
       : `Porque no se calcula sobre lo que perdiste sino sobre el valor asegurado del bien: ${(+d.dedPct||0)}% de ${cop(+d.valorAsegurado||0)} da ${cop(r.deducibleTeorico)}. Así funciona el amparo de terremoto en el mercado colombiano; no es un cobro nuevo ni una penalización por reclamar.`]);
