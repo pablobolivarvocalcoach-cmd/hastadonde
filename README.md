@@ -6,6 +6,8 @@ coberturas explicados en lenguaje claro, con números.
 
 Nació después del sismo del 10 de agosto de 2026.
 
+**Úsala en línea:** https://pablobolivarvocalcoach-cmd.github.io/hastadonde/
+
 - **Un solo archivo.** `dist/hasta-donde.html` se abre con doble clic.
 - **Sin servidor, sin cuentas, sin cookies, sin internet.**
 - **Nada se guarda.** Las cifras que ingresas se pierden al recargar, a propósito.
@@ -13,8 +15,8 @@ Nació después del sismo del 10 de agosto de 2026.
 ## Empezar
 
 ```bash
-npm test        # 24 pruebas: motor, rangos, empaquetado y tono
-npm run build   # → dist/hasta-donde.html
+npm test        # 25 pruebas: motor, rangos, empaquetado y tono
+npm run build   # → dist/hasta-donde.html y docs/index.html (copia idéntica, para GitHub Pages)
 npm run check   # ambas
 ```
 

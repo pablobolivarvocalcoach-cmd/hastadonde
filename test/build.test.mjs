@@ -31,3 +31,8 @@ test('el HTML queda autocontenido: sin <link> a CSS ni <script src>', () => {
   assert.ok(!/<script[^>]+src=/.test(html));
   assert.ok(!/<link[^>]+stylesheet[^>]+estilos\.css/.test(html));
 });
+
+test('docs/index.html existe y es idéntico a dist/hasta-donde.html, para GitHub Pages', () => {
+  const docs = readFileSync('docs/index.html', 'utf8');
+  assert.equal(docs, html, 'docs/index.html quedó desincronizado de dist/hasta-donde.html');
+});

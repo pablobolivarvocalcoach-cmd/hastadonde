@@ -22,3 +22,8 @@ let html = readFileSync('src/index.html', 'utf8')
 mkdirSync('dist', { recursive: true });
 writeFileSync('dist/hasta-donde.html', html);
 console.log(`dist/hasta-donde.html — ${(html.length/1024).toFixed(1)} KB`);
+
+// Copia idéntica para GitHub Pages, que solo sirve desde la raíz o /docs.
+mkdirSync('docs', { recursive: true });
+writeFileSync('docs/index.html', html);
+console.log(`docs/index.html — ${(html.length/1024).toFixed(1)} KB`);
