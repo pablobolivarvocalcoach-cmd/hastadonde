@@ -8,6 +8,7 @@ import { GLOSARIO } from './glosario.js';
 import { CLAUSULADOS_SEED } from './clausulados.js';
 import { PLAZOS } from './plazos.js';
 import { ASESOR, DOCUMENTOS, PROCESO } from './asesor.js';
+import { leerPdf } from './lector.js';
 
 function pintarCinta(elCinta, elRegla, r) {
   const T = Math.max(r.perdida, 1);
@@ -450,6 +451,78 @@ $('lineaPlazos').innerHTML = PLAZOS.map(([p,t,x])=>`
   <div class="hito"><div class="plazo">${p}</div><h3>${t}</h3><p>${x}</p></div>`).join('');
 
 /* ============================================================
-   14. Arranque
+   14. LECTOR DE PDF — prototipo. Solo lee y muestra: no toca `estado`
+   ni el cuestionario. Ver src/js/lector.js para la extracción en sí;
+   aquí solo se pinta lo que ya viene calculado.
+   ============================================================ */
+const CAMPOS_BUSCADOS = ['Deducible de terremoto', 'Vigencia', 'Valor asegurado'];
+let leyendoPdf = false;
+
+function textoCandidato(c) {
+  if (c.campo === 'Deducible de terremoto')
+    return [c.pct ? `${c.pct}%` : null, c.smmlv ? `mínimo ${c.smmlv} SMMLV` : null].filter(Boolean).join(' · ');
+  if (c.campo === 'Vigencia') return `${c.desde} a ${c.hasta}`;
+  if (c.campo === 'Valor asegurado') return c.monto;
+  return '';
+}
+
+function pintarLector(r) {
+  const est = $('lectorEstado'), res = $('lectorResultado');
+
+  if (!r.ok) {
+    est.innerHTML = `<div class="aviso" style="background:var(--fuera-luz);border-color:var(--fuera)"><b>${r.mensaje}</b></div>`;
+    res.innerHTML = '';
+    return;
+  }
+
+  est.innerHTML = r.dudoso ? `<div class="aviso" style="background:var(--fuera-luz);border-color:var(--fuera)">
+      <b>El texto de este PDF salió raro.</b> Puede tener una fuente que no decodificamos bien. Revisa con cuidado lo que sigue: si algo se ve corrupto, no lo copies, y usa mejor el PDF que te mande la aseguradora en otro formato si tienes uno.
+    </div>` : `<p style="color:var(--tinta2)">Leímos ${r.paginas} página${r.paginas===1?'':'s'}. Esto es lo que encontramos — verifícalo contra tu PDF antes de usarlo.</p>`;
+
+  const encontrados = r.candidatos.map(c => c.campo);
+  const faltantes = CAMPOS_BUSCADOS.filter(c => !encontrados.includes(c));
+
+  res.innerHTML = `
+    <div class="grid g2" style="margin-top:14px">
+      ${r.candidatos.map(c => `<div class="card">
+        <span class="chip">página ${c.pagina}, línea ${c.linea}</span>
+        <h3>${c.campo}</h3>
+        <p><b>${textoCandidato(c)}</b></p>
+        <p class="mono" style="font-size:12.5px;color:var(--tinta2)">“${c.texto}”</p>
+      </div>`).join('')}
+      ${faltantes.map(c => `<div class="card">
+        <span class="chip">no lo encontramos</span>
+        <h3>${c}</h3>
+        <p style="color:var(--tinta2)">No hay un dato confiable en el texto. Escríbelo tú cuando lo tengas a la vista en el PDF — es mejor dejarlo vacío que arriesgarnos a leerlo mal.</p>
+      </div>`).join('')}
+    </div>
+    <details class="term" style="margin-top:20px"><summary>Ver todo el texto que se extrajo, página por página</summary>
+      <div class="cuerpo">${Array.from({length:r.paginas}, (_,i)=>i+1).map(p => {
+        const lineas = r.lineas.filter(l => l.pagina === p);
+        return `<p class="mono" style="font-size:12px;color:var(--tinta2);margin-top:10px"><b>Página ${p}</b></p>
+          ${lineas.map(l => `<p class="mono" style="font-size:12px">${l.linea}. ${l.texto}</p>`).join('')}`;
+      }).join('')}</div>
+    </details>`;
+}
+
+if ($('filePdf')) $('filePdf').onchange = async e => {
+  const file = e.target.files[0];
+  if (!file || leyendoPdf) return;
+  leyendoPdf = true;
+  $('lectorEstado').innerHTML = `<p style="color:var(--tinta2)">Leyendo tu póliza… puede tardar unos segundos si tiene muchas páginas. Esto pasa aquí mismo, en tu navegador.</p>`;
+  $('lectorResultado').innerHTML = '';
+  try {
+    const r = await leerPdf(file);
+    pintarLector(r);
+  } catch {
+    pintarLector({ ok:false, mensaje:'Algo falló leyendo este PDF. Prueba con otro archivo o vuelve a intentarlo.' });
+  } finally {
+    leyendoPdf = false;
+    e.target.value = '';
+  }
+};
+
+/* ============================================================
+   15. Arranque
    ============================================================ */
 pintarWizard();

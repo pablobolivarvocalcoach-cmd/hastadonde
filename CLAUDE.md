@@ -124,6 +124,9 @@ src/js/catalogo.js    RAMOS: preguntas y semáforo por tipo de póliza ← nutri
 src/js/glosario.js    Términos en lenguaje claro                    ← nutrir
 src/js/clausulados.js Semilla de la biblioteca abierta              ← nutrir
 src/js/plazos.js      Línea de tiempo legal                         ← nutrir
+src/js/lector.js      Lector de pólizas en PDF (prototipo). Sin DOM: recibe
+                      un File, devuelve datos. pdf.js corre en el navegador,
+                      nunca por red — ver "Lector de PDF" más abajo.
 src/js/ui.js          Todo lo que toca el DOM. Solo aquí.
 build.mjs             Concatena a dist/hasta-donde.html, un archivo
 datos/clausulados.json  Si existe junto al HTML, sobreescribe la semilla
@@ -144,12 +147,56 @@ porque `String.replace` interpreta `$'` y `$&` en el reemplazo — y el código
 contiene `'$'` del formateador de pesos. Esto ya rompió el bundle una vez.
 Está cubierto por `test/build.test.mjs`.
 
+**Trampa conocida #2:** cualquier `export {...}` de un módulo propio tiene
+que quedar en **una sola línea**. `limpiar()` lo detecta con una regex por
+línea; si el export queda partido en dos, no se elimina, y el bundle final
+tiene un `export` suelto que revienta en tiempo de ejecución. También
+cubierto por `test/build.test.mjs` (ya atrapó este bug una vez, en
+`lector.js`).
+
+## Lector de PDF (prototipo, `src/js/lector.js`)
+
+Lee la carátula y el clausulado de una póliza directo en el navegador, sin
+subir el archivo a ningún lado (reglas 3 y 5). Todavía no llena el
+cuestionario: solo muestra lo que encontró, con página y línea, para que la
+persona lo verifique. Detalles que importan si tocas esto:
+
+- **pdf.js es la única librería viable** para leer PDFs reales sin arriesgar
+  texto mal decodificado (tildes, ñ, fuentes con codificación rara). Pero
+  agrega ~1,8 MB al archivo (de 88 KB a ~1,9 MB): es una decisión consciente,
+  no un descuido. Ver el PR que lo introdujo para la investigación completa.
+- Se embebe como texto plano en dos constantes (`PDFJS_LIB_SRC`,
+  `PDFJS_WORKER_SRC`) generadas por `build.mjs` desde
+  `node_modules/pdfjs-dist/legacy/build/`. **Nunca pasan por `limpiar()`**:
+  es un módulo ya minificado con su propio `export{}`, y la regex de línea
+  lo corrompería. Se ejecuta en tiempo real desde un `Blob` local
+  (`cargarPdfjs()` en `lector.js`) — sigue siendo cero red y un solo archivo.
+- Bajo `file://` (abrir con doble clic) Chromium no deja crear un Worker real
+  desde un Blob de origen `null`: pdf.js cae solo a "fake worker" y el parseo
+  corre en el hilo principal. Medido con una póliza sintética de 60 páginas
+  bajo CPU 4x más lenta (celular gama media): ~1,5–2,3 s totales, con un
+  bloqueo visible de hasta ~1,2 s en el peor frame. Aceptable para un
+  prototipo; si esto se vuelve el flujo principal, vale la pena revisar
+  cómo dar una señal de progreso más granular.
+- `pdfjs-dist` es una dependencia de **build**, no de la página publicada:
+  quien abre `dist/hasta-donde.html` no la necesita instalada, solo Node
+  para reconstruirla. `node_modules/` está en `.gitignore`;
+  `package-lock.json` sí se commitea para reproducibilidad.
+- Los buscadores de campos (`buscarDeducibleTerremoto`, `buscarVigencia`,
+  `buscarValorAsegurado`) son puros y solo aceptan coincidencias de alta
+  precisión en la **misma línea reconstruida**: si el dato está en una celda
+  de tabla que pdf.js extrae en otro orden, o repartido en dos líneas, no lo
+  encuentran — y eso es a propósito. Mejor un "no lo encontré" que un dato
+  mal leído. Si agregas un buscador nuevo, escribe el test primero en
+  `test/lector.test.mjs`, igual que con el motor.
+
 ## Flujo de trabajo
 
 ```bash
-npm test        # 24 pruebas: motor, rangos, empaquetado y tono
-npm run build   # genera dist/hasta-donde.html
-npm run check   # ambas: úsalo antes de cada commit
+npm install      # una vez: trae pdfjs-dist para el build (no la usa la página)
+npm test         # motor, rangos, empaquetado, tono y lector de PDF
+npm run build    # genera dist/hasta-donde.html y docs/index.html
+npm run check    # ambas: úsalo antes de cada commit
 ```
 
 Antes de dar por terminado cualquier cambio: `npm run check` en verde y abrir

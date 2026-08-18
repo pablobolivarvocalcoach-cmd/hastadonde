@@ -9,5 +9,8 @@
     "test": "node --test test/*.test.mjs",
     "check": "npm test && npm run build",
     "serve": "npm run build && node --eval \"import('node:http').then(h=>h.createServer((q,s)=>s.end(require('fs').readFileSync('dist/hasta-donde.html'))).listen(8080,()=>console.log('http://localhost:8080')))\""
+  },
+  "dependencies": {
+    "pdfjs-dist": "4.10.38"
   }
 }

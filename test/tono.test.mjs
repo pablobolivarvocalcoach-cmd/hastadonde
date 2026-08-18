@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const archivos = ['catalogo', 'ui', 'plazos', 'glosario', 'clausulados', 'asesor']
+const archivos = ['catalogo', 'ui', 'plazos', 'glosario', 'clausulados', 'asesor', 'lector']
   .map(f => [f, readFileSync(`src/js/${f}.js`, 'utf8')]);
 
 /* La herramienta es una extensión del servicio del asesor, no un kit para
