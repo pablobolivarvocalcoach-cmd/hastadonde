@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { agruparLineas, aplanarPaginas, calidadTexto, extraerCandidatos,
-  buscarDeducibleTerremoto, buscarVigencia, buscarValorAsegurado, pareceImagen } from '../src/js/lector.js';
+  buscarDeducibleTerremoto, buscarVigencia, buscarValorAsegurado, buscarCodigoClausulado,
+  buscarDefiniciones, buscarExclusiones, pareceImagen } from '../src/js/lector.js';
 
 /* pdf.js entrega y creciente hacia arriba de la página. transform = [a,b,c,d,x,y] */
 const item = (str, x, y) => ({ str, transform: [1, 0, 0, 1, x, y] });
@@ -83,4 +84,56 @@ test('pareceImagen sí marca un documento prácticamente sin texto', () => {
 test('extraerCandidatos nunca revienta con líneas vacías o sin coincidencias', () => {
   assert.deepEqual(extraerCandidatos([]), []);
   assert.deepEqual(extraerCandidatos([{ pagina: 1, linea: 1, texto: 'texto cualquiera sin nada útil' }]), []);
+});
+
+test('buscarCodigoClausulado exige la etiqueta correcta junto al código', () => {
+  const r = buscarCodigoClausulado([
+    { pagina: 8, linea: 3, texto: 'Código de clausulado depositado: CGP-2024-0451' }
+  ]);
+  assert.ok(r);
+  assert.equal(r.codigo, 'CGP-2024-0451');
+  assert.equal(buscarCodigoClausulado([{ pagina: 1, linea: 1, texto: 'Código postal: 110111' }]), null);
+});
+
+test('buscarDefiniciones toma la primera aparición de cada término, con contexto de la misma página', () => {
+  const lineas = [
+    { pagina: 5, linea: 1, texto: 'Se entiende por pérdida total' },
+    { pagina: 5, linea: 2, texto: 'cuando el costo de reparación' },
+    { pagina: 5, linea: 3, texto: 'supere el 75% del valor asegurado.' },
+    { pagina: 6, linea: 1, texto: 'Nada relevante en esta página' }
+  ];
+  const r = buscarDefiniciones(lineas);
+  const pt = r.find(d => d.termino === 'Pérdida total');
+  assert.ok(pt);
+  assert.equal(pt.pagina, 5);
+  assert.ok(pt.contexto.includes('costo de reparación'));
+  assert.equal(r.some(d => d.termino === 'Valor admitido'), false);
+});
+
+test('buscarDefiniciones no cruza el contexto a la página siguiente', () => {
+  const lineas = [
+    { pagina: 1, linea: 9, texto: 'Valor admitido' },
+    { pagina: 2, linea: 1, texto: 'esto ya es de otra página' }
+  ];
+  const r = buscarDefiniciones(lineas).find(d => d.termino === 'Valor admitido');
+  assert.equal(r.contexto, 'Valor admitido');
+});
+
+test('buscarExclusiones junta el bloque hasta el siguiente encabezado, sin cruzar de página', () => {
+  const lineas = [
+    { pagina: 4, linea: 1, texto: 'Exclusiones' },
+    { pagina: 4, linea: 2, texto: 'a) Guerra y actos de terrorismo.' },
+    { pagina: 4, linea: 3, texto: 'b) Energía nuclear.' },
+    { pagina: 4, linea: 4, texto: 'OBLIGACIONES DEL ASEGURADO' },
+    { pagina: 4, linea: 5, texto: 'c) Esto ya no debería entrar' },
+    { pagina: 5, linea: 1, texto: 'd) Esto es de otra página, tampoco entra' }
+  ];
+  const r = buscarExclusiones(lineas);
+  assert.ok(r);
+  assert.equal(r.pagina, 4);
+  assert.deepEqual(r.items, ['a) Guerra y actos de terrorismo.', 'b) Energía nuclear.']);
+});
+
+test('buscarExclusiones no inventa una sección que no existe', () => {
+  assert.equal(buscarExclusiones([{ pagina: 1, linea: 1, texto: 'texto normal de la póliza' }]), null);
 });

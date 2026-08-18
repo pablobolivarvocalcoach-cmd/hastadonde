@@ -455,7 +455,7 @@ $('lineaPlazos').innerHTML = PLAZOS.map(([p,t,x])=>`
    ni el cuestionario. Ver src/js/lector.js para la extracción en sí;
    aquí solo se pinta lo que ya viene calculado.
    ============================================================ */
-const CAMPOS_BUSCADOS = ['Deducible de terremoto', 'Vigencia', 'Valor asegurado'];
+const CAMPOS_BUSCADOS = ['Deducible de terremoto', 'Vigencia', 'Valor asegurado', 'Código de clausulado'];
 let leyendoPdf = false;
 
 function textoCandidato(c) {
@@ -463,6 +463,7 @@ function textoCandidato(c) {
     return [c.pct ? `${c.pct}%` : null, c.smmlv ? `mínimo ${c.smmlv} SMMLV` : null].filter(Boolean).join(' · ');
   if (c.campo === 'Vigencia') return `${c.desde} a ${c.hasta}`;
   if (c.campo === 'Valor asegurado') return c.monto;
+  if (c.campo === 'Código de clausulado') return c.codigo;
   return '';
 }
 
@@ -496,6 +497,25 @@ function pintarLector(r) {
         <p style="color:var(--tinta2)">No hay un dato confiable en el texto. Escríbelo tú cuando lo tengas a la vista en el PDF — es mejor dejarlo vacío que arriesgarnos a leerlo mal.</p>
       </div>`).join('')}
     </div>
+
+    ${(r.definiciones.length || r.exclusiones) ? `
+    <h3 style="font-size:22px;margin:30px 0 8px">Fragmentos del clausulado que encontramos</h3>
+    <p style="font-size:14px;color:var(--tinta2);max-width:62ch">Esto no es la exclusión ni la definición completa, es dónde empieza — léela entera en tu PDF antes de sacar una conclusión.</p>
+    <div class="grid g2" style="margin-top:14px">
+      ${r.exclusiones ? `<div class="card">
+        <span class="chip">página ${r.exclusiones.pagina}</span>
+        <h3>Exclusiones (candidato)</h3>
+        <ul style="margin:8px 0 0 18px;color:var(--tinta2);font-size:13.5px">
+          ${r.exclusiones.items.map(t => `<li>${t}</li>`).join('')}
+        </ul>
+      </div>` : ''}
+      ${r.definiciones.map(d => `<div class="card">
+        <span class="chip">página ${d.pagina}</span>
+        <h3>${d.termino}</h3>
+        <p class="mono" style="font-size:12.5px;color:var(--tinta2)">“${d.contexto}…”</p>
+      </div>`).join('')}
+    </div>` : ''}
+
     <details class="term" style="margin-top:20px"><summary>Ver todo el texto que se extrajo, página por página</summary>
       <div class="cuerpo">${Array.from({length:r.paginas}, (_,i)=>i+1).map(p => {
         const lineas = r.lineas.filter(l => l.pagina === p);
