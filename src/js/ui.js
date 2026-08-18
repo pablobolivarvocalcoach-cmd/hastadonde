@@ -8,7 +8,7 @@ import { GLOSARIO } from './glosario.js';
 import { CLAUSULADOS_SEED } from './clausulados.js';
 import { PLAZOS } from './plazos.js';
 import { ASESOR, DOCUMENTOS, PROCESO } from './asesor.js';
-import { leerPdf } from './lector.js';
+import { leerPdf, generarHuella } from './lector.js';
 
 function pintarCinta(elCinta, elRegla, r) {
   const T = Math.max(r.perdida, 1);
@@ -620,7 +620,34 @@ function pintarLector(r) {
         return `<p class="mono" style="font-size:12px;color:var(--tinta2);margin-top:10px"><b>Página ${p}</b></p>
           ${lineas.map(l => `<p class="mono" style="font-size:12px">${l.linea}. ${l.texto}</p>`).join('')}`;
       }).join('')}</div>
-    </details>`;
+    </details>
+
+    <div class="cta-row no-print" style="margin-top:24px">
+      <button class="btn ghost" id="btnHuella">Exportar huella de esta póliza</button>
+    </div>
+    <div id="huellaCaja"></div>`;
+
+  if ($('btnHuella')) $('btnHuella').onclick = () => {
+    $('huellaCaja').innerHTML = `
+      <div class="card" style="margin-top:14px">
+        <h3>Huella de esta póliza</h3>
+        <p style="color:var(--tinta2);font-size:13.5px">Un resumen técnico para diagnosticar por qué el lector no encontró algo — sin nombres, identificaciones, contacto ni cifras en pesos. Revísala igual antes de copiarla: puedes agregar la aseguradora o el producto a mano si quieres, nunca se autocompleta.</p>
+        <textarea id="huellaTexto" style="width:100%;min-height:260px;font-family:'IBM Plex Mono',monospace;font-size:12px;margin-top:10px;padding:10px;border-radius:8px;border:1px solid var(--linea);background:var(--papel)"></textarea>
+        <div class="cta-row no-print" style="margin-top:10px">
+          <button class="btn ghost" id="btnCopiarHuella">Copiar</button>
+        </div>
+      </div>`;
+    // .value, no innerHTML: la huella puede traer "<", ">" o "&" del PDF y
+    // no queremos que se interpreten como HTML.
+    $('huellaTexto').value = generarHuella(r);
+    $('btnCopiarHuella').onclick = () => {
+      navigator.clipboard.writeText($('huellaTexto').value).then(() => {
+        $('btnCopiarHuella').textContent = 'Copiado ✓';
+        setTimeout(() => $('btnCopiarHuella').textContent = 'Copiar', 2000);
+      });
+    };
+    $('huellaCaja').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
 }
 
 if ($('filePdf')) $('filePdf').onchange = async e => {

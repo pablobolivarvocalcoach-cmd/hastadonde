@@ -4,7 +4,8 @@ import { agruparLineas, aplanarPaginas, calidadTexto, extraerCandidatos,
   buscarDeducibleTerremoto, buscarVigencia, buscarValorAsegurado, buscarCodigoClausulado,
   buscarDefiniciones, buscarExclusiones, extraerTablaDeducibles, extraerValoresPorItem,
   extraerCoaseguro, buscarPlazoAviso, buscarAnticipoIndemnizacion, buscarDemeritoPorUso,
-  paginaLegible, limpiarNotaAlPie, pareceImagen } from '../src/js/lector.js';
+  paginaLegible, limpiarNotaAlPie, pareceContenerPII, enmascararLinea, lineasClaveParaHuella,
+  encabezadosDeTabla, estadoCampos, generarHuella, pareceImagen } from '../src/js/lector.js';
 
 /* Helper: arma líneas numeradas a partir de un arreglo de texto plano, todas
    en la misma página salvo que se indique lo contrario. Los ejemplos de
@@ -421,4 +422,140 @@ test('buscarVigencia no se confunde si una fecha ajena aparece antes de las etiq
   assert.ok(r);
   assert.equal(r.desde, '15/02/2026');
   assert.equal(r.hasta, '15/02/2027');
+});
+
+/* ============================================================
+   Huella de extracción — la regla es "cero datos del cliente", sin
+   excepciones. Estas pruebas envenenan a propósito las líneas con datos
+   personales falsos (nombre, cédula, NIT, teléfono, correo, dirección,
+   número de póliza) mezclados con líneas técnicas reales, y verifican que
+   nada de eso sobreviva en el texto final.
+   ============================================================ */
+
+test('pareceContenerPII detecta las etiquetas de datos personales', () => {
+  const conPII = [
+    'NIT 900.123.456-7',
+    'Cédula: 12.345.678',
+    'Correo: cliente@ejemplo.com',
+    'Teléfono: 3001234567',
+    'Dirección: Calle 1 # 2-3, Bogotá',
+    'Tomador: Juan Pérez Gómez',
+    'Póliza No. 445566',
+    'Intermediario: Asesor de Seguros S.A.S.'
+  ];
+  for (const t of conPII) assert.equal(pareceContenerPII(t), true, `debería marcar PII: "${t}"`);
+
+  assert.equal(pareceContenerPII('Deducible terremoto: 2% del valor asegurable, mínimo 3 SMMLV'), false);
+});
+
+test('enmascararLinea oculta montos en pesos y números largos, conserva % y SMMLV/SMDLV', () => {
+  assert.equal(
+    enmascararLinea('Valor asegurado: $2.000.000.000'),
+    'Valor asegurado: $ #.###.###'
+  );
+  assert.equal(
+    enmascararLinea('Deducible terremoto: 2% del valor asegurable, mínimo 15 SMDLV'),
+    'Deducible terremoto: 2% del valor asegurable, mínimo 15 SMDLV'
+  );
+  // Un número de 3+ dígitos que NO es porcentaje ni SMMLV/SMDLV: podría ser
+  // un NIT, una cédula o un número de póliza — se oculta siempre.
+  assert.equal(
+    enmascararLinea('Referencia interna 445566 del expediente'),
+    'Referencia interna [número oculto] del expediente'
+  );
+  // Un porcentaje de tres dígitos (cobertura al 100%) sí se conserva.
+  assert.equal(
+    enmascararLinea('Cobertura al 100% del valor'),
+    'Cobertura al 100% del valor'
+  );
+});
+
+test('lineasClaveParaHuella descarta cualquier línea con pinta de dato personal, aunque tenga palabra clave', () => {
+  const lineas = enPagina(4, [
+    'Tomador: Juan Pérez Gómez, deducible terremoto a su cargo',
+    'Deducible terremoto: 2% del valor asegurable, mínimo 3 SMMLV',
+    'Texto irrelevante sin ninguna palabra clave'
+  ]);
+  const claves = lineasClaveParaHuella(lineas);
+  assert.equal(claves.length, 1);
+  assert.ok(!claves[0].texto.includes('Juan Pérez'));
+  assert.ok(claves[0].texto.includes('SMMLV'));
+});
+
+test('lineasClaveParaHuella no repite la misma línea y respeta el límite', () => {
+  const repetidas = enPagina(1, Array(5).fill('Deducible terremoto: 2% mínimo 3 SMMLV'));
+  assert.equal(lineasClaveParaHuella(repetidas).length, 1);
+
+  const muchas = [];
+  for (let i = 0; i < 80; i++) muchas.push({ pagina: 1, linea: i + 1, texto: `Deducible amparo ${i}: 2% mínimo 3 SMMLV` });
+  assert.ok(lineasClaveParaHuella(muchas).length <= 60, 'la huella debe quedarse en "unos pocos kilobytes"');
+});
+
+test('encabezadosDeTabla reconoce etiquetas de columna, no confunde una oración normal', () => {
+  const lineas = enPagina(1, ['COBERTURA DEDUCIBLE', 'Terremoto 1% del valor asegurable del ítem afectado']);
+  const enc = encabezadosDeTabla(lineas);
+  assert.equal(enc.length, 1);
+  assert.equal(enc[0].texto, 'COBERTURA DEDUCIBLE');
+});
+
+/* Objeto base con la forma que devuelve leerPdf(), para probar
+   estadoCampos()/generarHuella() sin necesitar pdf.js. */
+const rBase = () => ({
+  paginas: 3, paginasSalteadas: [], lineas: [],
+  candidatos: [], definiciones: [], exclusiones: null,
+  tablaDeducibles: [], valoresPorItem: [], coaseguro: [],
+  plazoAviso: null, anticipo: null, demeritoPorUso: null
+});
+
+test('estadoCampos marca PARCIAL cuando hay una cláusula pero falta el número, y NO ENCONTRADO cuando no hay nada', () => {
+  const r = rBase();
+  r.demeritoPorUso = { pagina: 5, linea: 1, umbralPct: null, texto: 'texto' };
+  r.definiciones = [{ termino: 'Valor real', pagina: 1, linea: 1, contexto: 'x' }];
+  const estados = Object.fromEntries(estadoCampos(r));
+  assert.equal(estados['Demérito por uso'], 'PARCIAL (sin umbral)');
+  assert.ok(estados['Definiciones clave'].startsWith('PARCIAL'));
+  assert.equal(estados['Vigencia'], 'NO ENCONTRADO');
+});
+
+test('estadoCampos cuenta el deducible de terremoto como encontrado si solo apareció en la tabla por amparo', () => {
+  const r = rBase();
+  r.tablaDeducibles = [{ amparo: 'Terremoto', base: 'valorAsegurable', pct: '1', smmlv: null, smdlv: null, sinDeducible: false, pagina: 1, linea: 1, texto: 'x' }];
+  const estados = Object.fromEntries(estadoCampos(r));
+  assert.equal(estados['Deducible de terremoto'], 'OK');
+});
+
+test('generarHuella nunca incluye nombres, identificaciones, contacto ni cifras en pesos, aunque estén en el documento', () => {
+  const r = rBase();
+  r.lineas = enPagina(1, [
+    'Tomador: María Fernanda Rodríguez López',
+    'NIT 900.123.456-7',
+    'Cédula: 79.845.123',
+    'Correo: maria.rodriguez@correo-personal.com',
+    'Teléfono: 3109876543',
+    'Dirección: Carrera 45 # 12-34, Medellín',
+    'Póliza No. 998877',
+    'Deducible terremoto: 2% del valor asegurable, mínimo 3 SMMLV',
+    'Valor asegurado: $2.000.000.000',
+    'COBERTURA DEDUCIBLE'
+  ]);
+  r.candidatos = [{ campo: 'Deducible de terremoto', pct: '2', smmlv: '3', smdlv: null, pagina: 1, linea: 8, texto: r.lineas[7].texto }];
+
+  const huella = generarHuella(r);
+
+  const prohibido = [
+    'María', 'Fernanda', 'Rodríguez', 'López',
+    '900.123.456', '79.845.123', '3109876543',
+    'maria.rodriguez@correo-personal.com',
+    'Carrera 45', 'Medellín', '998877',
+    '2.000.000.000', '$2.000.000.000'
+  ];
+  for (const p of prohibido) {
+    assert.ok(!huella.includes(p), `la huella no debería contener "${p}"`);
+  }
+  // Lo estructural sí debe sobrevivir: es lo que sirve para diagnosticar.
+  assert.ok(huella.includes('SMMLV'));
+  assert.ok(huella.includes('2%'));
+  assert.ok(huella.includes('$ #.###.###'));
+  assert.ok(huella.includes('COBERTURA DEDUCIBLE'));
+  assert.ok(huella.includes('Deducible de terremoto: OK'));
 });

@@ -557,4 +557,142 @@ async function leerPdf(file) {
   };
 }
 
-export { agruparLineas, aplanarPaginas, calidadTexto, extraerCandidatos, buscarDeducibleTerremoto, buscarVigencia, buscarValorAsegurado, buscarCodigoClausulado, buscarDefiniciones, buscarExclusiones, extraerTablaDeducibles, extraerValoresPorItem, extraerCoaseguro, buscarPlazoAviso, buscarAnticipoIndemnizacion, buscarDemeritoPorUso, paginaLegible, limpiarNotaAlPie, pareceImagen, leerPdf };
+/* ============================================================
+   Huella de extracción — un resumen técnico para diagnosticar POR QUÉ
+   falló la lectura, pensado para copiar y compartir con quien mejora el
+   lector. Regla dura, sin excepciones: cero datos del cliente. Nunca un
+   nombre, número de identificación, dirección, contacto o cifra en pesos
+   — solo estructura: porcentajes, unidades SMMLV/SMDLV, qué campo se
+   encontró y en qué página. Todo lo de aquí abajo es puro: recibe el
+   resultado de leerPdf() y devuelve texto, nunca toca el DOM.
+   ============================================================ */
+
+/* Cualquier mención de esto descarta la línea COMPLETA de la huella,
+   aunque también contenga una palabra clave técnica: mejor perder una
+   línea útil para diagnosticar que arriesgar un dato del cliente. */
+const RX_POSIBLE_PII = /\bnit\b|c[ée]dula|correo|e-?mail|tel[ée]fono|direcci[oó]n|p[oó]liza\s*(?:n[uú]mero|no\.?|#)|intermediario|tomador\b|raz[oó]n\s+social|representante\s+legal/i;
+
+function pareceContenerPII(texto) {
+  return RX_POSIBLE_PII.test(texto);
+}
+
+/* Enmascara lo que no es estructura del deducible. Los montos en pesos
+   SIEMPRE se ocultan. Cualquier número de 3 dígitos o más también se
+   oculta, salvo que sea un porcentaje o una cantidad de SMMLV/SMDLV — en
+   este dominio esas dos cosas nunca pasan de 2 dígitos (ver RX_PCT,
+   RX_SMMLV, RX_SMDLV), así que un número de 3+ dígitos es casi siempre un
+   NIT, una cédula o un número de póliza, nunca la estructura del
+   deducible. */
+function enmascararLinea(texto) {
+  let t = texto.replace(new RegExp(RX_PESOS, 'g'), '$ #.###.###');
+  t = t.replace(/\d{3,}/g, (m, offset, str) => {
+    const despues = str.slice(offset + m.length, offset + m.length + 12);
+    if (/^\s*%/.test(despues)) return m;
+    if (/^\s*(?:smmlv|smdlv|sml[dm]v)/i.test(despues)) return m;
+    return '[número oculto]';
+  });
+  return t;
+}
+
+const PALABRAS_CLAVE_HUELLA = [
+  /deducible/i, /franquicia/i, /valor\s+asegurad\w*/i, /valor\s+asegurable\w*/i,
+  /suma\s+asegurada/i, /terremoto/i, /temblor/i, /sismo/i, /smmlv/i, /smdlv/i,
+  /sml[dm]v/i, /m[ií]nimo/i, /sin\s+deducible/i, /registro\s+condicionado/i,
+  /exclusiones?/i
+];
+const LIMITE_LINEAS_HUELLA = 60;
+
+/* Líneas del documento que mencionan alguna palabra clave técnica, ya
+   enmascaradas y sin las que huelen a dato personal. Se acota a un límite
+   para que la huella siga siendo "unos pocos kilobytes" incluso en una
+   póliza de 60 páginas donde "deducible" aparece decenas de veces. */
+function lineasClaveParaHuella(lineas) {
+  const vistas = new Set();
+  const out = [];
+  for (const l of lineas) {
+    if (out.length >= LIMITE_LINEAS_HUELLA) break;
+    if (pareceContenerPII(l.texto)) continue;
+    if (!PALABRAS_CLAVE_HUELLA.some(rx => rx.test(l.texto))) continue;
+    const enmascarada = enmascararLinea(l.texto);
+    const clave = `${l.pagina}|${enmascarada}`;
+    if (vistas.has(clave)) continue;
+    vistas.add(clave);
+    out.push({ pagina: l.pagina, texto: enmascarada });
+  }
+  return out;
+}
+
+/* Encabezados de tabla (línea corta, toda en mayúscula o casi — reusa
+   esEncabezado) que además contienen una palabra propia de tabla de
+   pólizas. Son etiquetas de columna genéricas ("COBERTURA DEDUCIBLE"),
+   nunca datos del cliente, así que no necesitan enmascararse. */
+function encabezadosDeTabla(lineas) {
+  const rxPalabra = /cobertura|amparo|deducible|valores?\s+asegurad\w*|l[ií]mite/i;
+  const vistos = new Set();
+  const out = [];
+  for (const l of lineas) {
+    const t = l.texto.trim();
+    if (!esEncabezado(t) || !rxPalabra.test(t)) continue;
+    const clave = `${l.pagina}|${t}`;
+    if (vistos.has(clave)) continue;
+    vistos.add(clave);
+    out.push({ pagina: l.pagina, texto: t });
+  }
+  return out;
+}
+
+/* Estado de cada campo buscado — se arma a partir de lo que ya devolvió
+   leerPdf(), nunca de texto crudo: por diseño no puede filtrar nada
+   personal, porque son conteos y banderas, no strings del PDF. */
+function estadoCampos(r) {
+  const terremotoEnTabla = r.tablaDeducibles.some(f => /terremoto|sismo|temblor/i.test(f.amparo));
+  const dedEncontrado = r.candidatos.some(c => c.campo === 'Deducible de terremoto') || terremotoEnTabla;
+  const campo = (nombre, ok) => [nombre, ok ? 'OK' : 'NO ENCONTRADO'];
+  const filas = n => `OK (${n} ${n === 1 ? 'fila' : 'filas'})`;
+
+  return [
+    campo('Deducible de terremoto', dedEncontrado),
+    campo('Vigencia', r.candidatos.some(c => c.campo === 'Vigencia')),
+    campo('Valor asegurado', r.candidatos.some(c => c.campo === 'Valor asegurado')),
+    campo('Código de clausulado', r.candidatos.some(c => c.campo === 'Código de clausulado')),
+    [`Tabla de deducibles por amparo`, r.tablaDeducibles.length ? filas(r.tablaDeducibles.length) : 'NO ENCONTRADO'],
+    [`Valor asegurado por ítem`, r.valoresPorItem.length ? filas(r.valoresPorItem.length) : 'NO ENCONTRADO'],
+    [`Coaseguro`, r.coaseguro.length ? filas(r.coaseguro.length) : 'NO ENCONTRADO'],
+    campo('Exclusiones', !!r.exclusiones),
+    [`Definiciones clave`, r.definiciones.length === 0 ? 'NO ENCONTRADO'
+      : r.definiciones.length < TERMINOS_CLAVE.length ? `PARCIAL (${r.definiciones.length}/${TERMINOS_CLAVE.length})`
+      : `OK (${r.definiciones.length}/${TERMINOS_CLAVE.length})`],
+    campo('Plazo de aviso', !!r.plazoAviso),
+    campo('Anticipo de indemnización', !!r.anticipo),
+    [`Demérito por uso`, !r.demeritoPorUso ? 'NO ENCONTRADO' : (r.demeritoPorUso.umbralPct ? 'OK' : 'PARCIAL (sin umbral)')]
+  ];
+}
+
+/* Arma el texto final de la huella. Puro: nada de DOM, nada de red. */
+function generarHuella(r) {
+  const claves = lineasClaveParaHuella(r.lineas);
+  const encabezados = encabezadosDeTabla(r.lineas);
+  const salteadas = r.paginasSalteadas.length
+    ? ` (${r.paginasSalteadas.length} ilegible${r.paginasSalteadas.length === 1 ? '' : 's'}: pág. ${r.paginasSalteadas.join(', ')})`
+    : '';
+
+  return [
+    'HUELLA DE EXTRACCIÓN — Hasta Dónde',
+    '(para diagnosticar el lector de PDF · sin datos del cliente · revisa antes de compartir)',
+    `Generada: ${new Date().toISOString().slice(0, 10)}`,
+    'Aseguradora / producto (opcional — agrégalo tú si quieres, nunca se autocompleta):',
+    '',
+    `Páginas: ${r.paginas}${salteadas}`,
+    '',
+    'CAMPOS BUSCADOS',
+    ...estadoCampos(r).map(([campo, estado]) => `- ${campo}: ${estado}`),
+    '',
+    'ENCABEZADOS DE TABLA DETECTADOS',
+    encabezados.length ? encabezados.map(e => `pág. ${e.pagina}: "${e.texto}"`).join('\n') : '(ninguno)',
+    '',
+    'LÍNEAS CON PALABRAS CLAVE (cifras en pesos y números largos ocultos)',
+    claves.length ? claves.map(c => `pág. ${c.pagina}: "${c.texto}"`).join('\n') : '(ninguna)'
+  ].join('\n');
+}
+
+export { agruparLineas, aplanarPaginas, calidadTexto, extraerCandidatos, buscarDeducibleTerremoto, buscarVigencia, buscarValorAsegurado, buscarCodigoClausulado, buscarDefiniciones, buscarExclusiones, extraerTablaDeducibles, extraerValoresPorItem, extraerCoaseguro, buscarPlazoAviso, buscarAnticipoIndemnizacion, buscarDemeritoPorUso, paginaLegible, limpiarNotaAlPie, pareceContenerPII, enmascararLinea, lineasClaveParaHuella, encabezadosDeTabla, estadoCampos, generarHuella, pareceImagen, leerPdf };

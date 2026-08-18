@@ -45,6 +45,13 @@ herramienta lo
 dice en vez de inventarlo. Es una primera versión: todavía no llena el
 cuestionario por ti ni reemplaza la entrada principal de la página.
 
+Al final del resultado hay un botón para **exportar la huella de la
+póliza**: un resumen técnico pensado para compartir con quien esté
+mejorando el lector, sin un solo dato del cliente — nunca nombres, NIT,
+cédulas, direcciones, contacto ni cifras en pesos, solo qué campo se
+encontró y en qué página. Se muestra en un cuadro de texto para que lo
+revises tú antes de copiarlo.
+
 ## Si eres asesor de seguros
 
 Configura tus datos en `src/js/asesor.js` (nombre, agencia, WhatsApp, correo)

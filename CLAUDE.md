@@ -250,6 +250,25 @@ persona lo verifique. Detalles que importan si tocas esto:
   0,4), la página no muestra ninguna cifra: solo el aviso y un enlace al
   cuestionario manual. El umbral normal de "dudoso" (0,75) sigue avisando
   arriba de todo, antes de cualquier dato — nunca solo al lado de cada uno.
+- **`generarHuella()`** arma un resumen técnico para diagnosticar por qué
+  falló la lectura, pensado para compartir con quien mejora el lector.
+  Regla dura, sin excepciones: **cero datos del cliente**. Nunca un
+  nombre, NIT, cédula, dirección, contacto o cifra en pesos — solo
+  estructura (qué campo se encontró, en qué página, porcentajes y
+  cantidades de SMMLV/SMDLV). Dos capas de protección, no una sola:
+  `pareceContenerPII()` descarta la línea COMPLETA si huele a dato
+  personal (aunque también tenga una palabra clave técnica), y
+  `enmascararLinea()` oculta cualquier monto en pesos y cualquier número
+  de 3+ dígitos que no sea un porcentaje o una cantidad de SMMLV/SMDLV —
+  en este dominio esas dos cosas nunca pasan de 2 dígitos, así que un
+  número más largo es casi siempre un NIT, una cédula o un número de
+  póliza. Si agregas una palabra clave nueva a `PALABRAS_CLAVE_HUELLA`,
+  agrega también un caso envenenado con datos personales falsos en
+  `test/lector.test.mjs` que confirme que siguen sin colarse — es la
+  única forma de que un cambio futuro no rompa esta garantía en silencio.
+  La UI siempre muestra el texto en un `<textarea>` editable antes de
+  copiarlo, nunca lo copia directo: la persona revisa y puede agregar a
+  mano la aseguradora o el producto si quiere, pero eso nunca se adivina.
 
 ## Flujo de trabajo
 
