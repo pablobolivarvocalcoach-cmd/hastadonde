@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hasta Dónde — Radiografía de pólizas · Colombia</title>
+<meta name="description" content="Herramienta abierta y gratuita para entender hasta dónde llega tu póliza: deducibles, infraseguro y coberturas en lenguaje claro. Copropiedades, PYME, autos y hogar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --papel:#E8EBE4;
+  --tarjeta:#F6F8F3;
+  --tinta:#131A17;
+  --tinta2:#5A6560;
+  --linea:#C7CDC2;
+  --recibe:#0D6E5B;
+  --recibe-luz:#D3E7E0;
+  --deduce:#D99511;
+  --deduce-luz:#F6E7C4;
+  --fuera:#7C2D4B;
+  --fuera-luz:#EBD7DF;
+  --r:14px;
+  --max:1080px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--papel);color:var(--tinta);
+  font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.display{font-family:"Archivo","Archivo Black",system-ui,sans-serif;font-variation-settings:"wdth" 112,"wght" 800;line-height:1.02;letter-spacing:-.02em;margin:0}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 20px}
+section{padding:64px 0;border-top:1px solid var(--linea)}
+section:first-of-type{border-top:0}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--tinta2);margin-bottom:14px;display:block}
+p{margin:0 0 14px}
+a{color:var(--recibe)}
+button{font:inherit}
+:focus-visible{outline:3px solid var(--recibe);outline-offset:3px;border-radius:4px}
+
+/* ---------- HEADER ---------- */
+.top{position:sticky;top:0;z-index:60;background:rgba(232,235,228,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--linea)}
+.top-in{max-width:var(--max);margin:0 auto;padding:11px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.marca{font-family:"Archivo",sans-serif;font-variation-settings:"wdth" 78,"wght" 900;font-size:19px;letter-spacing:.01em;text-transform:uppercase}
+.marca em{font-style:normal;color:var(--recibe)}
+.alerta{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--fuera);border:1px solid var(--fuera);padding:3px 8px;border-radius:99px;white-space:nowrap}
+.navlinks{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.navlinks a{font-size:14px;color:var(--tinta2);text-decoration:none;padding:5px 10px;border-radius:8px}
+.navlinks a:hover{background:var(--tarjeta);color:var(--tinta)}
+
+/* ---------- HERO ---------- */
+.hero{padding:56px 0 60px}
+.hero h1{font-size:clamp(40px,8.2vw,86px);font-variation-settings:"wdth" 118,"wght" 900;max-width:14ch}
+.hero h1 .q{color:var(--recibe)}
+.lede{font-size:clamp(17px,2.2vw,21px);max-width:52ch;margin-top:20px;color:var(--tinta2)}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.btn{display:inline-flex;align-items:center;gap:9px;background:var(--tinta);color:var(--papel);border:1px solid var(--tinta);padding:14px 22px;border-radius:99px;font-weight:600;font-size:16px;cursor:pointer;text-decoration:none;transition:transform .12s ease}
+.btn:hover{transform:translateY(-2px)}
+.btn.ghost{background:transparent;color:var(--tinta)}
+.btn.verde{background:var(--recibe);border-color:var(--recibe);color:#fff}
+
+/* ---------- CINTA (signature) ---------- */
+.cinta-caja{margin-top:44px;background:var(--tarjeta);border:1px solid var(--linea);border-radius:var(--r);padding:22px 20px 18px}
+.cinta-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.cinta-top .rot{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tinta2)}
+.regla{position:relative;height:16px;border-bottom:1.5px solid var(--tinta);margin-bottom:0}
+.regla i{position:absolute;bottom:0;width:1px;background:var(--linea)}
+.regla i.mayor{background:var(--tinta2)}
+.cinta{display:flex;height:58px;border:1.5px solid var(--tinta);border-top:0;border-radius:0 0 6px 6px;overflow:hidden}
+.seg{display:flex;align-items:center;justify-content:center;transition:width .7s cubic-bezier(.22,1,.36,1);min-width:0;position:relative}
+.seg span{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg.d{background:var(--deduce-luz);color:#6b4a02}
+.seg.i{background:var(--fuera-luz);color:var(--fuera)}
+.seg.r{background:var(--recibe);color:#fff}
+.seg.x{background:var(--linea);color:var(--tinta2)}
+.leyenda{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:13.5px;color:var(--tinta2)}
+.leyenda b{display:inline-flex;align-items:center;gap:7px;font-weight:500;color:var(--tinta)}
+.dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+.dot.d{background:var(--deduce)}.dot.i{background:var(--fuera)}.dot.r{background:var(--recibe)}
+
+/* ---------- CARDS / GRID ---------- */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.card{background:var(--tarjeta);border:1px solid var(--linea);border-radius:var(--r);padding:20px}
+.card h3{font-size:19px;font-variation-settings:"wdth" 105,"wght" 750;margin-bottom:8px}
+.card p{font-size:15px;color:var(--tinta2);margin:0}
+.num{font-family:"IBM Plex Mono",monospace;font-size:clamp(24px,4vw,34px);font-weight:600;letter-spacing:-.02em}
+
+/* ---------- SUSTO comparador ---------- */
+.susto{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));margin-top:22px}
+.susto>div{border-radius:var(--r);padding:20px;border:1px solid var(--linea)}
+.susto .creias{background:var(--tarjeta)}
+.susto .real{background:var(--fuera);color:#fff;border-color:var(--fuera)}
+.susto .real .num,.susto .real .eyebrow{color:#fff}
+.susto .real .eyebrow{opacity:.75}
+.susto small{display:block;font-size:13.5px;color:var(--tinta2);margin-top:8px}
+.susto .real small{color:rgba(255,255,255,.82)}
+.controlitos{display:flex;gap:14px;flex-wrap:wrap;margin-top:20px}
+.controlito{flex:1;min-width:170px}
+.controlito label{display:block;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--tinta2);font-family:"IBM Plex Mono",monospace;margin-bottom:6px}
+input[type=range]{width:100%;accent-color:var(--recibe)}
+.valorito{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:16px}
+
+/* ---------- WIZARD ---------- */
+.wiz{background:var(--tarjeta);border:1px solid var(--linea);border-radius:var(--r);padding:26px 22px;min-height:380px;display:flex;flex-direction:column}
+.pasos{display:flex;gap:6px;margin-bottom:22px;align-items:center}
+.pip{height:5px;flex:1;background:var(--linea);border-radius:99px;transition:background .3s}
+.pip.on{background:var(--recibe)}
+.pip.done{background:var(--tinta)}
+.pcount{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--tinta2);white-space:nowrap;letter-spacing:.08em}
+.preg{font-family:"Archivo",sans-serif;font-variation-settings:"wdth" 108,"wght" 800;font-size:clamp(24px,4.2vw,36px);line-height:1.06;margin-bottom:10px}
+.ayuda{font-size:15px;color:var(--tinta2);margin-bottom:22px;max-width:56ch}
+.ops{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.op{text-align:left;background:var(--papel);border:1.5px solid var(--linea);border-radius:12px;padding:16px 18px;cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:4px}
+.op:hover{border-color:var(--tinta);transform:translateY(-2px)}
+.op.sel{border-color:var(--recibe);background:var(--recibe-luz)}
+.op b{font-size:16.5px;font-weight:600}
+.op i{font-style:normal;font-size:13.5px;color:var(--tinta2)}
+.campos{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.campo label{display:block;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--tinta2);font-family:"IBM Plex Mono",monospace;margin-bottom:6px}
+.campo input,.campo select{width:100%;padding:13px 14px;border:1.5px solid var(--linea);border-radius:10px;background:var(--papel);font-family:"IBM Plex Mono",monospace;font-size:16px;color:var(--tinta)}
+.campo input:focus,.campo select:focus{border-color:var(--recibe);outline:none}
+.campo .pista{font-size:12.5px;color:var(--tinta2);margin-top:5px;font-family:"Instrument Sans",sans-serif}
+.wiz-nav{display:flex;gap:10px;margin-top:auto;padding-top:24px;flex-wrap:wrap}
+.link-btn{background:none;border:none;color:var(--tinta2);text-decoration:underline;cursor:pointer;font-size:14.5px;padding:8px 0}
+
+/* ---------- RESULTADO ---------- */
+.res{display:none}
+.res.on{display:block}
+.res-cifras{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:20px 0}
+.cifra{background:var(--tarjeta);border:1px solid var(--linea);border-radius:var(--r);padding:18px}
+.cifra.destacada{background:var(--recibe);color:#fff;border-color:var(--recibe)}
+.cifra.destacada .eyebrow{color:rgba(255,255,255,.8)}
+.cifra .eyebrow{margin-bottom:6px}
+.semaforo{display:grid;gap:10px;margin-top:12px}
+.fila{display:flex;gap:14px;align-items:flex-start;background:var(--tarjeta);border:1px solid var(--linea);border-left-width:5px;border-radius:10px;padding:14px 16px}
+.fila.si{border-left-color:var(--recibe)}
+.fila.ojo{border-left-color:var(--deduce)}
+.fila.no{border-left-color:var(--fuera)}
+.fila .ico{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;padding-top:2px;white-space:nowrap}
+.fila.si .ico{color:var(--recibe)}.fila.ojo .ico{color:#8a6003}.fila.no .ico{color:var(--fuera)}
+.fila b{display:block;font-size:16px;margin-bottom:3px}
+.fila span{font-size:14.5px;color:var(--tinta2)}
+.aviso{background:var(--deduce-luz);border:1px solid var(--deduce);border-radius:var(--r);padding:16px 18px;font-size:15px;margin:18px 0}
+.aviso b{display:block;margin-bottom:4px}
+
+/* ---------- BIBLIOTECA ---------- */
+.tabla{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:16px}
+.tabla th{text-align:left;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--tinta2);border-bottom:1.5px solid var(--tinta);padding:8px 10px}
+.tabla td{border-bottom:1px solid var(--linea);padding:11px 10px;vertical-align:top}
+.tabla tr:hover td{background:var(--tarjeta)}
+.chip{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:99px;border:1px solid var(--linea);color:var(--tinta2)}
+.tabla-scroll{overflow-x:auto}
+
+/* ---------- GLOSARIO ---------- */
+.buscador{width:100%;padding:15px 18px;border:1.5px solid var(--linea);border-radius:99px;background:var(--tarjeta);font-size:16px;font-family:inherit;color:var(--tinta);margin-bottom:18px}
+.buscador:focus{border-color:var(--recibe);outline:none}
+details.term{background:var(--tarjeta);border:1px solid var(--linea);border-radius:10px;margin-bottom:8px;overflow:hidden}
+details.term summary{padding:15px 18px;cursor:pointer;font-weight:600;font-size:16.5px;list-style:none;display:flex;justify-content:space-between;gap:14px;align-items:center}
+details.term summary::-webkit-details-marker{display:none}
+details.term summary::after{content:"+";font-family:"IBM Plex Mono",monospace;color:var(--tinta2);font-size:20px;flex-shrink:0}
+details.term[open] summary::after{content:"–"}
+details.term .cuerpo{padding:0 18px 18px;font-size:15.5px}
+details.term .corto{color:var(--recibe);font-weight:600;margin-bottom:10px}
+details.term .ej{background:var(--papel);border-left:3px solid var(--linea);padding:11px 14px;font-size:14.5px;color:var(--tinta2);border-radius:0 8px 8px 0;margin-top:10px}
+
+/* ---------- TIMELINE ---------- */
+.linea-t{border-left:2px solid var(--linea);margin-left:10px;padding-left:26px;display:grid;gap:24px}
+.hito{position:relative}
+.hito::before{content:"";position:absolute;left:-33px;top:5px;width:13px;height:13px;border-radius:50%;background:var(--papel);border:2.5px solid var(--recibe)}
+.hito .plazo{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fuera);margin-bottom:4px}
+.hito h3{font-size:18px;margin-bottom:5px}
+.hito p{font-size:15px;color:var(--tinta2);margin:0}
+
+footer{background:var(--tinta);color:var(--papel);padding:52px 0 40px;font-size:14.5px}
+footer .wrap>p{color:#9BA69F;max-width:70ch}
+footer .marca{color:var(--papel);margin-bottom:16px;display:block}
+footer a{color:#7FD3BE}
+.legal{border:1px solid #33403A;border-radius:var(--r);padding:18px;margin-top:24px;color:#B6C0BA;font-size:13.5px}
+
+.oculto{display:none!important}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{
+  .top,.cta-row,.wiz-nav,.navlinks,.no-print,footer{display:none!important}
+  body{background:#fff;font-size:12pt}
+  section{padding:16px 0;page-break-inside:avoid}
+  .card,.cifra,.fila,.wiz{border:1px solid #999;background:#fff}
+}
+
+/* ---------- CHECKLIST DE DOCUMENTOS ---------- */
+.checklist{display:grid;gap:2px}
+.chk{display:flex;gap:12px;align-items:flex-start;padding:11px 10px;border-radius:9px;cursor:pointer;transition:background .15s}
+.chk:hover{background:var(--papel)}
+.chk input{margin:3px 0 0;width:19px;height:19px;flex-shrink:0;accent-color:var(--recibe);cursor:pointer}
+.chk span{font-size:15.5px;line-height:1.45}
+.chk input:checked+span{color:var(--tinta2);text-decoration:line-through}
+.progreso{display:flex;align-items:center;gap:14px;margin-top:16px;padding-top:16px;border-top:1px solid var(--linea)}
+.barra{flex:1;height:7px;background:var(--linea);border-radius:99px;overflow:hidden}
+.barra i{display:block;height:100%;width:0;background:var(--recibe);border-radius:99px;transition:width .3s ease}
+.progreso span{font-size:13px;color:var(--tinta2);white-space:nowrap}
+
+/* ---------- FIRMA DEL ASESOR ---------- */
+.asesor-caja{background:var(--tinta);color:var(--papel);border-radius:var(--r);padding:24px;margin-top:34px;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.asesor-caja .quien{flex:1;min-width:220px}
+.asesor-caja .rot{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9BA69F;display:block;margin-bottom:6px}
+.asesor-caja b{font-family:"Archivo",sans-serif;font-variation-settings:"wdth" 105,"wght" 750;font-size:21px;display:block}
+.asesor-caja i{font-style:normal;font-size:14.5px;color:#B6C0BA}
+.asesor-caja p{margin:8px 0 0;font-size:15px;color:#D3DBD6;max-width:44ch}
+.asesor-top{font-size:13.5px;color:var(--tinta2);white-space:nowrap}
+.asesor-top b{color:var(--tinta);font-weight:600}
+@media print{.asesor-caja{background:#fff;color:#000;border:1px solid #999}.asesor-caja *{color:#000!important}}
+
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="marca">Hasta<em>Dónde</em></div>
+    <div class="alerta mono">Sismo 10 ago 2026 · M 7,4</div>
+      <div class="asesor-top" id="asesorTop"></div>
+    <nav class="navlinks">
+      <a href="#deducible">Deducibles</a>
+      <a href="#diagnostico">Diagnóstico</a>
+      <a href="#biblioteca">Clausulados</a>
+      <a href="#glosario">Glosario</a>
+      <a href="#plazos">Plazos</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Herramienta abierta · Colombia · Copropiedades, PYME, autos y hogar</span>
+    <h1>¿Hasta dónde llega tu póliza<span class="q">?</span></h1>
+    <p class="lede">Nadie lee 40 páginas de clausulado. Responde 6 preguntas y te mostramos, con números, cuánto te pagarían de verdad, cuánto se lleva el deducible y qué preguntas hacerle hoy a tu asesor.</p>
+    <div class="cta-row">
+      <a class="btn verde" href="#diagnostico">Revisar mi póliza <span aria-hidden="true">→</span></a>
+      <a class="btn ghost" href="#deducible">Primero: entender el deducible</a>
+    </div>
+
+    <div class="cinta-caja">
+      <div class="cinta-top">
+        <div>
+          <span class="rot">La cinta del dinero — ejemplo real</span>
+          <div class="mono" style="font-size:15px;margin-top:4px" id="heroTitulo">Pérdida por sismo: $80.000.000</div>
+        </div>
+        <div class="mono" style="font-size:13px;color:var(--tinta2)" id="heroSub">Edificio asegurado en $2.000 millones · deducible 2% del valor asegurado</div>
+      </div>
+      <div class="regla" id="heroRegla" aria-hidden="true"></div>
+      <div class="cinta" id="heroCinta" role="img" aria-label="Reparto de la pérdida entre deducible y lo que recibe el asegurado">
+        <div class="seg d" style="width:50%"><span>Deducible</span></div>
+        <div class="seg r" style="width:50%"><span>Recibes</span></div>
+      </div>
+      <div class="leyenda">
+        <b><i class="dot d"></i> Se lo lleva el deducible</b>
+        <b><i class="dot i"></i> Se pierde por infraseguro</b>
+        <b><i class="dot r"></i> Llega a tu bolsillo</b>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEDUCIBLE -->
+<section id="deducible">
+  <div class="wrap">
+    <span class="eyebrow">El malentendido #1 · muévelo y verás</span>
+    <h2 style="font-size:clamp(28px,5vw,46px);max-width:20ch">El deducible casi nunca se calcula sobre lo que perdiste.</h2>
+    <p class="lede" style="margin-top:16px">En terremoto, la mayoría de pólizas colombianas calculan el deducible sobre el <b>valor asegurado del bien afectado</b>, no sobre el daño. Es la diferencia entre recibir plata y no recibir nada.</p>
+
+    <div class="controlitos">
+      <div class="controlito">
+        <label for="sVal">Valor asegurado del edificio</label>
+        <input type="range" id="sVal" min="200" max="8000" step="100" value="2000">
+        <div class="valorito" id="sValTxt">$2.000.000.000</div>
+      </div>
+      <div class="controlito">
+        <label for="sPer">Pérdida por el sismo</label>
+        <input type="range" id="sPer" min="5" max="600" step="5" value="80">
+        <div class="valorito" id="sPerTxt">$80.000.000</div>
+      </div>
+      <div class="controlito">
+        <label for="sDed">Deducible pactado</label>
+        <input type="range" id="sDed" min="0.5" max="10" step="0.25" value="2">
+        <div class="valorito" id="sDedTxt">2%</div>
+      </div>
+    </div>
+
+    <div class="susto">
+      <div class="creias">
+        <span class="eyebrow">Lo que casi todos creen</span>
+        <div class="num" id="sCreias">$78.400.000</div>
+        <small>Deducible del 2% <b>sobre la pérdida</b>. Suena razonable, pero casi nunca es así en el amparo de terremoto.</small>
+      </div>
+      <div class="real">
+        <span class="eyebrow">Lo que dice el clausulado</span>
+        <div class="num" id="sReal">$40.000.000</div>
+        <small>Deducible del 2% <b>sobre el valor asegurado</b> ($2.000M = $40M), con un mínimo en salarios mínimos. Si el daño es menor al deducible, la indemnización es cero.</small>
+      </div>
+    </div>
+    <p class="mono" style="font-size:13px;color:var(--tinta2);margin-top:14px" id="sMinimo">Mínimo habitual del amparo: no menos de X SMMLV.</p>
+  </div>
+</section>
+
+<!-- DIAGNÓSTICO -->
+<section id="diagnostico">
+  <div class="wrap">
+    <span class="eyebrow">Diagnóstico guiado · 6 preguntas · 3 minutos</span>
+    <h2 style="font-size:clamp(28px,5vw,46px);margin-bottom:24px">Tu radiografía</h2>
+    <div class="wiz" id="wiz">
+      <div class="pasos" id="pasos"></div>
+      <div id="cuerpoPaso"></div>
+      <div class="wiz-nav" id="wizNav"></div>
+    </div>
+
+    <div class="res" id="res"></div>
+  </div>
+</section>
+
+<!-- BIBLIOTECA -->
+<section id="biblioteca">
+  <div class="wrap">
+    <span class="eyebrow">Datos abiertos · esta tabla es de todos</span>
+    <h2 style="font-size:clamp(28px,5vw,46px);max-width:22ch">Biblioteca de clausulados</h2>
+    <p class="lede" style="margin-top:16px">Cada póliza tiene un código de clausulado registrado. Aquí los vamos guardando con su deducible de terremoto ya traducido. Agrega el tuyo y exporta el archivo para que quede en la página.</p>
+    <div class="cta-row no-print">
+      <button class="btn ghost" id="btnAddClaus">+ Agregar un clausulado</button>
+      <button class="btn ghost" id="btnExport">Exportar JSON</button>
+      <label class="btn ghost" style="cursor:pointer">Importar JSON<input type="file" id="fileImport" accept=".json" class="oculto"></label>
+    </div>
+    <div class="tabla-scroll">
+      <table class="tabla" id="tablaClaus"></table>
+    </div>
+    <p class="mono" style="font-size:12.5px;color:var(--tinta2);margin-top:14px">Los valores marcados <span class="chip">referencia de mercado</span> son rangos típicos, no el dato de tu póliza. Solo el clausulado firmado manda.</p>
+  </div>
+</section>
+
+<!-- GLOSARIO -->
+<section id="glosario">
+  <div class="wrap">
+    <span class="eyebrow">Traductor · de póliza a español</span>
+    <h2 style="font-size:clamp(28px,5vw,46px);margin-bottom:20px">Glosario en cristiano</h2>
+    <input class="buscador" id="buscaTermino" placeholder="Busca: deducible, infraseguro, lucro cesante, salvamento…" aria-label="Buscar término">
+    <div id="listaGlosario"></div>
+  </div>
+</section>
+
+<!-- PLAZOS -->
+<section id="plazos">
+  <div class="wrap">
+    <span class="eyebrow">Reloj corriendo · Código de Comercio</span>
+    <h2 style="font-size:clamp(28px,5vw,46px);margin-bottom:26px">Tus plazos, en orden</h2>
+    <div class="linea-t" id="lineaPlazos"></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="marca">Hasta<em style="color:#7FD3BE;font-style:normal">Dónde</em></span>
+    <p>Herramienta educativa y abierta, hecha en Colombia tras el sismo del 10 de agosto de 2026. Un archivo, sin servidor, sin cuentas, sin cookies. Descárgala, cámbiala, compártela.</p>
+    <div class="legal">
+      <b>Esto no es asesoría legal ni de seguros.</b> Los cálculos son estimaciones educativas basadas en las condiciones que tú ingresas. La única fuente válida es tu clausulado y la carátula de tu póliza. Las decisiones sobre una reclamación deben tomarse con tu asesor, tu aseguradora o un abogado. Si tu aseguradora objeta, puedes acudir al Defensor del Consumidor Financiero de la entidad y a la Superintendencia Financiera de Colombia.
+    </div>
+  </div>
+</footer>
+
+<script>
+/* Constantes del país y del evento. Actualiza el SMMLV cada enero.
+   Hasta Dónde — https://github.com/  ·  licencia MIT  */
+
+const CONFIG = {
+  SMMLV: 1750905,              // Decreto 1469 de 2025 — vigente 2026
+  anio: 2026,
+  sismo: { fecha: '10 de agosto de 2026', magnitud: '7,4', epicentro: 'San José del Palmar, Chocó' }
+};
+
+const cop = n => '$' + Math.round(n).toLocaleString('es-CO');
+const copCorto = n => n >= 1e9 ? '$' + (n/1e9).toFixed(n%1e9===0?0:1) + ' mil M'
+                    : n >= 1e6 ? '$' + (n/1e6).toFixed(n%1e6===0?0:1) + ' M'
+                    : cop(n);
+
+
+
+/* MOTOR DE CÁLCULO — puro, sin DOM, cubierto por test/motor.test.mjs.
+   Orden de aplicación (no lo cambies sin leer CLAUDE.md):
+   1) regla proporcional por infraseguro  2) deducible  3) tope
+   Hasta Dónde — https://github.com/  ·  licencia MIT  */
+
+
+function calcular(d) {
+  const P  = Math.max(0, +d.perdida || 0);
+  const VA = Math.max(0, +d.valorAsegurado || 0);
+  const VR = Math.max(0, +d.valorReal || 0);
+
+  // Infraseguro / regla proporcional — art. 1102 C.Co.
+  const hayInfra = VR > 0 && VA > 0 && VA < VR;
+  const factor   = hayInfra ? VA / VR : 1;
+  const Pajust   = P * factor;
+  const porInfra = P - Pajust;
+
+  // Deducible: se aplica el mayor entre porcentaje, mínimo en SMMLV y monto fijo
+  const base   = d.baseDeducible === 'perdida' ? Pajust : VA;
+  const porPct = base * (+d.dedPct || 0) / 100;
+  const porMin = (+d.dedMinSMMLV || 0) * CONFIG.SMMLV;
+  const Dteorico = Math.max(porPct, porMin, +d.dedFijo || 0);
+
+  // Indemnización, con tope por sublímite o por valor asegurado
+  const sinTope = Math.max(0, Pajust - Dteorico);
+  const tope    = +d.sublimite > 0 ? +d.sublimite : (VA > 0 ? VA : Infinity);
+  const indem   = Math.min(sinTope, tope);
+  const porTope = sinTope - indem;
+  const dedAplicado = Math.min(Dteorico, Pajust);
+
+  return {
+    perdida: P,
+    indemnizacion: indem,
+    deducible: dedAplicado,
+    deducibleTeorico: Dteorico,
+    porInfraseguro: porInfra,
+    porTope,
+    hayInfra, factor,
+    mandaMinimo: porMin > porPct && porMin > 0,
+    topeAplicado: porTope > 0, tope,
+    pctRecuperado: P > 0 ? indem / P * 100 : 0,
+    deTuBolsillo: P - indem
+  };
+}
+
+
+
+/* ASESOR — configuración del intermediario y contenido que reduce llamadas.
+   Este módulo existe porque la herramienta NO es para que el cliente audite
+   a su asesor: es para que llegue resuelto y con la carpeta lista.
+   Hasta Dónde  ·  licencia MIT  */
+
+/* Edita este bloque con tus datos. Si `mostrar` es false, la página queda
+   genérica y sin marca. El WhatsApp va en formato internacional sin signos. */
+const ASESOR = {
+  mostrar: true,
+  nombre: 'Pablo David Bolívar',
+  // Si no tienes razón social, deja el descriptor de tu rol. Puede ir vacío.
+  empresa: 'Asesor de seguros',
+  whatsapp: '573105007749',        // indicativo + celular, sin espacios ni +
+  correo: 'pablodavidbolivar@hotmail.com',
+  // Frase que ve el cliente antes de enviar su pre-diagnóstico.
+  invitacion: 'Cuando tengas la carpeta lista, mándamela por aquí y yo radico la reclamación.'
+};
+
+/* Documentos que hay que reunir. Es lo que de verdad destraba una
+   reclamación: el 90% de las llamadas al asesor son por un papel faltante. */
+const DOCUMENTOS = {
+  comun: [
+    'Cédula del titular de la póliza, por ambas caras',
+    'Fotos y video del daño con fecha visible, desde varios ángulos',
+    'Fotos del bien completo, no solo del detalle dañado',
+    'Número de la póliza (está en la carátula, primera hoja)'
+  ],
+  ph: [
+    'Certificado de existencia y representación de la copropiedad',
+    'Acta de nombramiento del administrador vigente',
+    'Registro fotográfico de cada área común afectada, identificada',
+    'Dos cotizaciones de reparación, en lo posible',
+    'Informe del ingeniero estructural, si ya lo hicieron',
+    'Certificado de afectación del Consejo Municipal de Gestión del Riesgo'
+  ],
+  pyme: [
+    'RUT y certificado de cámara de comercio',
+    'Facturas de compra de la maquinaria o equipos afectados',
+    'Kardex o inventario a la fecha del sismo',
+    'Cotizaciones de reparación o reposición',
+    'Contrato de arrendamiento, si el local es arrendado',
+    'Si hay lucro cesante: estados de resultados, declaraciones de renta e IVA y facturación de los 12 meses anteriores'
+  ],
+  auto: [
+    'Tarjeta de propiedad del vehículo',
+    'Licencia de conducción de quien lo manejaba',
+    'SOAT y revisión tecnomecánica vigentes',
+    'Fotos en el sitio, antes de mover el vehículo',
+    'Informe de tránsito o croquis, si hubo terceros',
+    'Cotización del taller'
+  ],
+  hogar: [
+    'Certificado de tradición, escritura o promesa de compraventa',
+    'Recibo de servicio público reciente como prueba de dirección',
+    'Inventario de contenidos, con facturas o fotos anteriores si existen',
+    'Cotizaciones de reparación',
+    'Certificado de afectación de la alcaldía, si la vivienda quedó inhabitable',
+    'Si el seguro viene del crédito: número de obligación y certificación de saldo'
+  ]
+};
+
+/* Qué va a pasar y quién lo hace. Existe para bajar la ansiedad y evitar
+   la llamada de "¿ya hay noticias?". No prometas tiempos que no controlas. */
+const PROCESO = [
+  ['Tú', 'Reúnes la carpeta de arriba',
+   'Es el único paso que depende de ti y es el que más demora todo el proceso cuando queda incompleto.'],
+  ['Tu asesor', 'Radica el aviso y la reclamación',
+   'No tienes que hablar con la aseguradora ni entender el trámite. Para eso está el intermediario: él arma el expediente y lo presenta.'],
+  ['La aseguradora', 'Asigna un ajustador y programa visita',
+   'Por el volumen de la emergencia los tiempos se alargaron. Es normal y le está pasando a todo el mundo; no significa que tu caso esté detenido.'],
+  ['El ajustador', 'Valora el daño en sitio',
+   'Su cifra puede no coincidir con la tuya. También es normal: se sustenta con cotizaciones y soportes, y ahí es donde tu asesor pelea el número.'],
+  ['La aseguradora', 'Paga dentro del mes siguiente a la reclamación acreditada',
+   'El mes corre desde que el expediente está completo, no desde el día del sismo. Por eso importa tanto la carpeta.'],
+  ['Tu asesor', 'Te avisa cuando haya novedad',
+   'No necesitas hacer seguimiento diario. Si algo se traba o falta un documento, te van a buscar a ti.']
+];
+
+
+
+/* CATÁLOGO DE RAMOS — aquí se nutre el conocimiento de coberturas.
+   Hasta Dónde — https://github.com/  ·  licencia MIT  */
+
+
+const NUM = (l1,l2,l3,p1,p2,p3) => ({
+  tipo:'campos', preg:'Los tres números que lo deciden todo',
+  ayuda:'Están en la carátula de tu póliza (primera hoja). Si no los tienes a la mano, pon un estimado: después los ajustas.',
+  campos:[
+    {k:'valorAsegurado', l:l1, pista:p1},
+    {k:'valorReal',      l:l2, pista:p2},
+    {k:'perdida',        l:l3, pista:p3}
+  ]
+});
+
+const PASO_DEDUCIBLE = {
+  tipo:'campos', preg:'El deducible de terremoto',
+  ayuda:'Búscalo en la carátula bajo “deducibles”. Suele decir algo como “2% del valor asegurable del ítem afectado, mínimo 3 SMMLV”. Si no lo encuentras, deja los valores de referencia y marca la duda en tu reporte.',
+  campos:[
+    {k:'baseDeducible', l:'Se calcula sobre', tipo:'select',
+     ops:[['valorAsegurado','El valor asegurado del bien (lo más común)'],['perdida','El valor de la pérdida']],
+     pista:'Esta sola línea puede cambiar tu indemnización en decenas de millones.'},
+    {k:'dedPct', l:'Porcentaje (%)', def:2, paso:0.25, pista:'Terremoto en PH y PYME suele ir entre 1% y 3%.'},
+    {k:'dedMinSMMLV', l:'Mínimo en SMMLV', def:3, paso:1, pista:`1 SMMLV 2026 = ${cop(CONFIG.SMMLV)}. Se aplica el que resulte mayor: el % o el mínimo.`}
+  ]
+};
+
+const RAMOS = {
+  ph: {
+    nombre:'Copropiedad / PH', icono:'Edificio',
+    intro:'Ley 675 de 2001: toda copropiedad debe asegurar los bienes comunes contra incendio y terremoto. Tu apartamento por dentro es otro cuento.',
+    pasos:[
+      {tipo:'opciones', preg:'¿Desde dónde estás mirando esto?',
+       ayuda:'Cambia quién reclama y ante quién.',
+       k:'rol', ops:[
+        ['admin','Administrador o consejo','Manejo la póliza de áreas comunes'],
+        ['prop','Propietario','Vivo o soy dueño de una unidad'],
+        ['arr','Arrendatario','Vivo arrendado en el conjunto']]},
+      {tipo:'opciones', preg:'¿Qué quedó afectado?',
+       ayuda:'Áreas comunes = fachada, cubierta, muros estructurales, ascensores, tanques, parqueaderos, portería. Área privada = todo lo que hay puertas adentro.',
+       k:'que', ops:[
+        ['comun','Áreas comunes','Fachada, cubierta, ascensor, estructura'],
+        ['privado','Solo mi unidad','Muros internos, acabados, mis cosas'],
+        ['ambos','Las dos','Daño en común y en privado'],
+        ['nose','Todavía no sé','Aún no hay peritaje']]},
+      {tipo:'opciones', preg:'La póliza de áreas comunes, ¿tiene amparo de terremoto activo?',
+       ayuda:'Ojo: tener póliza no es lo mismo que tener terremoto amparado. Búscalo en la carátula bajo “amparos” o “coberturas otorgadas”.',
+       k:'amparo', ops:[
+        ['si','Sí, terremoto está amparado','Lo confirmé en la carátula'],
+        ['no','No lo tiene','Solo incendio u otros'],
+        ['nose','No lo sé','Nadie me lo ha dicho']]},
+      NUM('Valor asegurado del edificio','Costo real de reconstruirlo hoy','Pérdida estimada por el sismo',
+          'El que figura en la carátula para bienes comunes.',
+          'Si no lo sabes, usa el avalúo más reciente. Si está desactualizado, ya tienes infraseguro.',
+          'Estimado de reparación. Ajústalo cuando llegue el perito.'),
+      PASO_DEDUCIBLE,
+      {tipo:'multi', preg:'¿Qué más aparece en tu carátula?',
+       ayuda:'Marca todo lo que reconozcas. Estos amparos suelen estar y casi nadie los reclama.',
+       k:'extras', ops:[
+        ['escombros','Remoción de escombros','Sublímite propio, suele ser 5%–10%'],
+        ['arriendo','Arrendamiento / gastos extraordinarios','Paga tu alojamiento mientras reparan'],
+        ['rc','Responsabilidad civil extracontractual','Si algo del edificio dañó a un tercero'],
+        ['honorarios','Honorarios profesionales','Arquitecto, ingeniero, licencias'],
+        ['maquinaria','Rotura de maquinaria / ascensores','Equipos comunes'],
+        ['ninguno','Ninguno / no sé','']]}
+    ],
+    reglas: d => {
+      const s=[];
+      if (d.que==='privado') s.push(['no','SOLO PRIVADO','La póliza de áreas comunes no cubre el interior de tu apartamento','Necesitas tu propia póliza de hogar con amparo de terremoto, o la del banco si tienes hipoteca. Reclama por ahí, no por la administración.']);
+      if (d.que==='comun'||d.que==='ambos') s.push(['si','ÁREAS COMUNES','Reclama a través de la administración','La copropiedad es la tomadora de la póliza, así que la reclamación la presenta la administración, no cada propietario por separado. Tu parte es reportarle el daño que viste, con fotos.']);
+      if (d.amparo==='no') s.push(['no','SIN AMPARO','Sin terremoto amparado no hay indemnización por sismo','La Ley 675 de 2001 obliga a asegurar los bienes comunes contra incendio y terremoto, así que es un tema para la próxima asamblea. Para este siniestro, el camino son las ayudas oficiales: registra la afectación en tu alcaldía.']);
+      if (d.amparo==='nose') s.push(['ojo','POR CONFIRMAR','Confirma hoy mismo si terremoto está amparado','Sin ese dato el cálculo de arriba es solo una referencia. La administración tiene la carátula y tu asesor puede verificarlo en un minuto.']);
+      if (d.rol==='arr') s.push(['ojo','ARRENDATARIO','El edificio no es tuyo, tus cosas sí','La póliza de la copropiedad cubre el inmueble común, no tus muebles ni electrodomésticos. Eso va en un contenido de hogar a tu nombre.']);
+      s.push(['ojo','DESTINO DE LA PLATA','La indemnización va primero a reconstruir','En propiedad horizontal la indemnización se destina en primer término a reconstruir el edificio; solo si eso no ocurre se reparte entre propietarios según coeficiente de copropiedad.']);
+      if (d.extras&&d.extras.includes('escombros')) s.push(['si','ESCOMBROS','Tienes remoción de escombros','Se reclama aparte y tiene su propio sublímite. Guarda facturas de volquetas, cuadrillas y disposición.']);
+      if (d.extras&&d.extras.includes('arriendo')) s.push(['si','ARRIENDO','Tienes gastos de alojamiento','Si el edificio quedó inhabitable, la póliza puede pagar arriendo temporal. Guarda contrato y recibos desde el día uno.']);
+      return s;
+    }
+  },
+
+  pyme: {
+    nombre:'PYME / Comercio', icono:'Negocio',
+    intro:'Aquí lo que suele doler no es el local: es el mes que el negocio estuvo cerrado. Y ese amparo casi nadie lo contrata.',
+    pasos:[
+      {tipo:'opciones', preg:'¿Qué se dañó en el negocio?',
+       ayuda:'Cada uno es un ítem distinto en la póliza, con su propio valor asegurado y su propio deducible.',
+       k:'que', ops:[
+        ['edificio','El local o la bodega','Estructura, techos, muros'],
+        ['maquinaria','Maquinaria y equipos','Producción, cómputo, refrigeración'],
+        ['mercancia','Mercancía e inventario','Producto terminado, materia prima'],
+        ['todo','Varias cosas','Combinado']]},
+      {tipo:'opciones', preg:'¿El local es propio o arrendado?',
+       ayuda:'Si es arrendado, el edificio lo asegura el dueño; tú aseguras mejoras, contenidos y tu operación.',
+       k:'tenencia', ops:[
+        ['propio','Propio',''],
+        ['arrendado','Arrendado',''],
+        ['nose','No estoy seguro','']]},
+      {tipo:'opciones', preg:'¿Tienes amparo de lucro cesante o pérdida de beneficio bruto?',
+       ayuda:'Es el amparo que te paga la utilidad y los gastos fijos mientras el negocio no factura. Es el más valioso después de un sismo y el más olvidado.',
+       k:'lucro', ops:[
+        ['si','Sí lo tengo','Aparece en la carátula'],
+        ['no','No lo tengo',''],
+        ['nose','No sé qué es eso','Te lo explicamos en el reporte']]},
+      NUM('Valor asegurado del ítem afectado','Cuánto cuesta reponerlo hoy','Pérdida estimada',
+          'Búscalo por ítem, no el total de la póliza.',
+          'A precio de hoy, no lo que pagaste hace 6 años.',
+          'Incluye reparación y reposición.'),
+      PASO_DEDUCIBLE,
+      {tipo:'multi', preg:'¿Qué más tiene tu multirriesgo?',
+       ayuda:'Marca lo que reconozcas en la carátula.',
+       k:'extras', ops:[
+        ['escombros','Remoción de escombros',''],
+        ['gastosextra','Gastos extraordinarios','Alquilar un local provisional, horas extra'],
+        ['rc','Responsabilidad civil','Daños a terceros o vecinos'],
+        ['transito','Bienes en tránsito',''],
+        ['equipoelec','Equipo electrónico',''],
+        ['ninguno','Ninguno / no sé','']]}
+    ],
+    reglas: d => {
+      const s=[];
+      if (d.lucro==='no'||d.lucro==='nose') s.push(['no','LUCRO CESANTE','No tienes cubierto el negocio parado','Te pagan reparar el local, pero no los meses sin facturar ni la nómina que igual debes pagar. Para muchas PYMEs esa es la pérdida más grande. Cotízalo en la renovación.']);
+      else s.push(['si','LUCRO CESANTE','Tienes cubierto el negocio parado','Reúne ya: declaraciones de renta, IVA, estados de resultados y facturación de los 12 meses previos. Sin eso no se puede probar la cuantía.']);
+      if (d.tenencia==='arrendado'&&d.que==='edificio') s.push(['ojo','EDIFICIO AJENO','El local no es tuyo','El daño estructural lo reclama el propietario con su póliza. Lo tuyo son mejoras locativas, contenidos y lucro cesante. Revisa qué dice el contrato de arrendamiento sobre fuerza mayor.']);
+      if (d.que==='mercancia'||d.que==='todo') s.push(['ojo','INVENTARIO','Prueba la existencia y el valor','Kardex, facturas de compra, conteos, fotos y video con fecha. La aseguradora paga lo que puedas demostrar que había.']);
+      if (d.extras&&d.extras.includes('gastosextra')) s.push(['si','GASTOS EXTRAORDINARIOS','Puedes reabrir en otro lado y cobrarlo','Cubre el sobrecosto de operar provisionalmente. Importante: tiene que autorizarse antes de gastar, así que avisa qué piensas hacer antes de firmar el arriendo del local temporal.']);
+      s.push(['ojo','NO BOTES NADA','Conserva los bienes dañados','Salvo riesgo para las personas, no botes ni repares definitivamente antes del ajustador. Fotografía y video todo con fecha visible.']);
+      return s;
+    }
+  },
+
+  auto: {
+    nombre:'Automóviles', icono:'Vehículo',
+    intro:'El SOAT nunca cubre tu carro: cubre personas lesionadas. Si un muro le cayó encima, esto depende solo de tu todo riesgo.',
+    pasos:[
+      {tipo:'opciones', preg:'¿Qué tienes contratado?',
+       ayuda:'Es la pregunta que define si hay algo que reclamar.',
+       k:'tipo', ops:[
+        ['todoriesgo','Todo riesgo','Con daños propios'],
+        ['rc','Solo responsabilidad civil','Cubre a terceros, no a mí'],
+        ['soat','Solo SOAT','Obligatorio, solo personas'],
+        ['nose','No estoy seguro','']]},
+      {tipo:'opciones', preg:'¿Cómo se dañó el vehículo?',
+       ayuda:'Sirve para saber bajo qué amparo entra la reclamación.',
+       k:'como', ops:[
+        ['cayo','Le cayó algo encima','Muro, techo, poste, escombros'],
+        ['choque','Choque durante la emergencia','Evacuación, semáforos caídos'],
+        ['total','Quedó destruido','Pérdida total'],
+        ['sepulto','Quedó atrapado o sepultado','Parqueadero colapsado']]},
+      {tipo:'opciones', preg:'¿Cómo está asegurado el valor?',
+       ayuda:'Mira la carátula: dice “valor comercial” o un valor fijo pactado.',
+       k:'modo', ops:[
+        ['comercial','A valor comercial','Se paga según guía Fasecolda al día del siniestro'],
+        ['fijo','A valor fijo pactado',''],
+        ['nose','No sé','']]},
+      NUM('Valor asegurado del vehículo','Valor comercial hoy (guía Fasecolda)','Costo estimado del daño',
+          'El de la carátula.',
+          'Si el asegurado es menor al comercial, hay infraseguro.',
+          'Cotización del taller o estimado.'),
+      PASO_DEDUCIBLE,
+      {tipo:'multi', preg:'¿Qué más incluye tu póliza?',
+       k:'extras', ayuda:'Marca lo que reconozcas.',
+       ops:[
+        ['grua','Grúa y asistencia',''],
+        ['carroreemplazo','Carro de reemplazo',''],
+        ['perdidatotal','Pérdida total sin deducible','Algunas pólizas lo traen'],
+        ['accesorios','Accesorios declarados',''],
+        ['ninguno','Ninguno / no sé','']]}
+    ],
+    reglas: d => {
+      const s=[];
+      if (d.tipo==='soat') s.push(['no','SOAT','El SOAT no repara tu carro','El SOAT solo cubre atención médica, incapacidad, muerte y gastos funerarios de personas lesionadas en un accidente de tránsito. Los daños al vehículo no entran, nunca.']);
+      if (d.tipo==='rc') s.push(['no','SOLO RC','La RC cubre a los demás, no a ti','Responsabilidad civil paga el daño que tú causas a un tercero. Tu propio vehículo queda por fuera.']);
+      if (d.tipo==='todoriesgo') s.push(['si','TODO RIESGO','Aquí sí puede haber reclamación','Los daños por eventos de la naturaleza suelen entrar en el amparo de daños parciales o pérdida total. Confirma que “terremoto, temblor o erupción” no esté en exclusiones.']);
+      if (d.como==='total'||d.como==='sepulto') s.push(['ojo','PÉRDIDA TOTAL','Revisa el umbral de tu póliza','Casi todas declaran pérdida total cuando la reparación supera un porcentaje del valor asegurado (con frecuencia 75%). Ojo con el salvamento: si te quedas con los restos, te descuentan su valor.']);
+      if (d.modo==='comercial') s.push(['ojo','VALOR COMERCIAL','Te pagan el valor de hoy, no el de compra','La aseguradora usa la guía de valores de referencia vigente al día del siniestro, no el precio que pagaste. Si el valor que aplican parece bajo, se sustenta con avisos de venta comparables del mismo modelo y año.']);
+      if (d.extras&&d.extras.includes('accesorios')) s.push(['ojo','ACCESORIOS','Solo pagan los declarados','Rines, sonido, blindaje o carpas solo se indemnizan si están declarados y valorados en la póliza.']);
+      s.push(['ojo','DENUNCIA Y FOTOS','Documenta el lugar','Fotos del vehículo y de lo que lo dañó, en el sitio, antes de moverlo. Si hubo terceros, informe de tránsito.']);
+      return s;
+    }
+  },
+
+  hogar: {
+    nombre:'Hogar', icono:'Vivienda',
+    intro:'Si tu casa tiene hipoteca, casi seguro tienes un seguro de incendio y terremoto exigido por el banco. Ese seguro protege primero al banco.',
+    pasos:[
+      {tipo:'opciones', preg:'¿Cómo llegaste a tu seguro?',
+       ayuda:'Cambia por completo qué está cubierto y quién cobra.',
+       k:'origen', ops:[
+        ['banco','Viene con el crédito hipotecario','Lo cobra el banco en la cuota'],
+        ['voluntario','Lo contraté yo aparte',''],
+        ['ambos','Tengo los dos',''],
+        ['ninguno','No tengo seguro','']]},
+      {tipo:'opciones', preg:'¿Qué se dañó?',
+       ayuda:'Estructura y contenidos son dos bolsillos distintos, con valores y deducibles distintos.',
+       k:'que', ops:[
+        ['estructura','La construcción','Muros, techo, columnas, pisos'],
+        ['contenido','Mis cosas','Muebles, electrodomésticos, ropa'],
+        ['ambos','Las dos',''],
+        ['inhabitable','Quedó inhabitable','No puedo vivir ahí']]},
+      {tipo:'opciones', preg:'¿El amparo de terremoto está activo?',
+       ayuda:'Búscalo textualmente en la carátula: “terremoto, temblor, erupción volcánica”.',
+       k:'amparo', ops:[
+        ['si','Sí',''],
+        ['no','No',''],
+        ['nose','No sé','']]},
+      NUM('Valor asegurado','Costo de reconstrucción hoy','Pérdida estimada',
+          'Si es del banco, a veces es solo el saldo de la deuda: eso es infraseguro puro.',
+          'Cuánto cuesta reconstruir, sin contar el lote.',
+          'Estimado de reparación.'),
+      PASO_DEDUCIBLE,
+      {tipo:'multi', preg:'¿Qué más aparece?',
+       k:'extras', ayuda:'Marca lo que reconozcas.',
+       ops:[
+        ['arriendo','Arrendamiento mientras reparan',''],
+        ['contenidos','Contenidos asegurados aparte',''],
+        ['escombros','Remoción de escombros',''],
+        ['rc','Responsabilidad civil familiar',''],
+        ['ninguno','Ninguno / no sé','']]}
+    ],
+    reglas: d => {
+      const s=[];
+      if (d.origen==='banco') s.push(['ojo','SEGURO DEL BANCO','Protege primero la deuda, no tu patrimonio','El seguro asociado al crédito hipotecario suele cubrir solo la estructura y con frecuencia por el saldo de la deuda, no por el costo real de reconstruir. Tus muebles y electrodomésticos casi nunca están incluidos. La carátula la tiene el banco y te la deben entregar cuando la pidas.']);
+      if (d.origen==='banco') s.push(['ojo','LA CUOTA SIGUE','El daño no borra el crédito','Aunque la casa esté afectada, la obligación con el banco sigue viva: son dos cosas separadas. Varios bancos abrieron periodos de gracia por la emergencia y se solicitan directamente en la entidad, no por la póliza.']);
+      if (d.origen==='ninguno') s.push(['no','SIN PÓLIZA','No hay reclamación posible','Concéntrate en el censo de damnificados y las ayudas oficiales. Radica tu caso en el Consejo Municipal de Gestión del Riesgo de tu alcaldía para el certificado de afectación.']);
+      if (d.que==='contenido'&&d.origen==='banco') s.push(['no','CONTENIDOS','Tus cosas probablemente no están cubiertas','El seguro hipotecario típico no incluye contenidos. Verifícalo antes de armar el inventario de reclamación.']);
+      if (d.que==='inhabitable') s.push(['ojo','INHABITABLE','Puede haber amparo de arriendo','Muchas pólizas pagan alojamiento temporal. Guarda contrato y recibos desde hoy. Además tramita el certificado de afectación en tu alcaldía.']);
+      if (d.amparo==='nose') s.push(['ojo','POR CONFIRMAR','Es el dato que falta para cerrar el cálculo','Sin saber si terremoto está amparado, las cifras de arriba son solo una referencia. Es lo primero que se verifica en la carátula.']);
+      return s;
+    }
+  }
+};
+
+
+
+/* GLOSARIO — [término, frase corta, explicación, ejemplo]
+   Hasta Dónde — https://github.com/  ·  licencia MIT  */
+
+const GLOSARIO = [
+ ['Deducible','La parte que siempre pagas tú.','Es el monto que la aseguradora descuenta de toda indemnización. En terremoto casi nunca se calcula sobre lo que perdiste, sino sobre el valor asegurado del bien, con un mínimo en salarios mínimos. Si la pérdida es menor al deducible, no hay pago.','Edificio de $2.000M, deducible 2% del valor asegurado = $40M. Si el daño fue de $30M, recibes cero.'],
+ ['Infraseguro y regla proporcional','Si aseguraste por menos de lo que vale, te pagan proporcionalmente menos.','Cuando el valor asegurado es inferior al valor real del bien, la indemnización se reduce en la misma proporción, aunque la pérdida sea parcial y pequeña. Es la trampa silenciosa de los avalúos desactualizados.','Casa que vale $500M asegurada en $250M (50%). Pérdida de $100M → solo se reconocen $50M, y de ahí todavía sale el deducible.'],
+ ['Valor asegurado vs. valor asegurable','Uno es lo que pusiste en el papel; el otro, lo que realmente vale.','El valor asegurado es la cifra que aparece en la carátula y sobre la que pagas prima. El valor asegurable es el valor real del bien. Cuando se separan, aparece infraseguro o sobreseguro.','Aseguraste la bodega en $300M en 2019 y hoy reconstruirla cuesta $520M.'],
+ ['Sublímite','Un techo pequeño dentro de un techo grande.','Límite específico para un amparo determinado, menor al límite total de la póliza. Remoción de escombros, honorarios y gastos extraordinarios casi siempre tienen sublímite.','Póliza de $2.000M con sublímite de escombros del 5% = máximo $100M por ese concepto.'],
+ ['Amparo','Lo que sí te cubre, escrito con nombre propio.','Cada riesgo cubierto se llama amparo y debe estar expresamente otorgado en la carátula. Lo que no aparece como amparo, no está cubierto, así parezca obvio.','Tener póliza de incendio no significa tener terremoto: son amparos distintos.'],
+ ['Exclusión','Lo que la póliza dice de frente que no paga.','Lista de eventos, bienes o circunstancias que quedan por fuera aunque el amparo exista. Vive en el clausulado, no en la carátula, y por eso casi nadie la lee.','Daño preexistente, desgaste natural, defectos de construcción o falta de mantenimiento.'],
+ ['Valor de reposición a nuevo','Te pagan lo que cuesta uno nuevo, sin descontar el uso.','Modalidad en la que la indemnización se calcula sobre el costo de reponer el bien nuevo. Si no está pactada, aplica valor real: te descuentan la depreciación por los años de uso.','Nevera de 8 años: a valor real te pagan quizá el 30%; a reposición a nuevo, una equivalente nueva.'],
+ ['Lucro cesante','Lo que dejas de ganar mientras no puedes operar.','En pólizas empresariales cubre la utilidad y los gastos fijos durante el periodo de interrupción. Se prueba con contabilidad, no con estimaciones. Suele tener un periodo de indemnización máximo en meses.','Restaurante cerrado 4 meses: cubre la utilidad perdida y la nómina que igual tuviste que pagar.'],
+ ['Remoción de escombros','Sacar los restos también cuesta, y también se reclama.','Amparo que paga demolición, retiro y disposición de escombros del bien asegurado. Tiene sublímite propio y exige facturas.','Volquetas, cuadrilla, alquiler de retroexcavadora, pago del relleno sanitario.'],
+ ['Gastos extraordinarios','El sobrecosto de seguir funcionando a las malas.','Cubre lo que gastas de más para reducir la interrupción: local provisional, horas extra, transporte urgente. Debe autorizarse con la aseguradora antes de incurrir en él.','Alquilar una bodega temporal mientras reparan la tuya.'],
+ ['Coaseguro','Varias aseguradoras se reparten el mismo riesgo.','Dos o más compañías asumen porcentajes de una misma póliza. Una actúa como líder y coordina el siniestro, pero cada una responde por su cuota.','Póliza de un conjunto grande repartida 60% / 40% entre dos compañías.'],
+ ['Salvamento','Lo que queda sirve, y tiene precio.','Valor de los restos recuperables del bien siniestrado. Si te los quedas, la aseguradora descuenta su valor de la indemnización.','Carro declarado pérdida total: si te quedas con los restos, te descuentan lo que valen.'],
+ ['Aviso de siniestro','El primer reloj que empieza a correr.','El asegurado debe avisar a la aseguradora dentro de los 3 días siguientes a la fecha en que conoció o debió conocer el siniestro (art. 1075 del Código de Comercio). La póliza puede ampliar ese plazo, y ante emergencias las compañías suelen flexibilizarlo. Avisa igual y guarda constancia.','Un correo con fecha y número de radicado vale más que diez llamadas.'],
+ ['Reclamación formal','Demostrar que pasó y cuánto costó.','Al asegurado le corresponde probar la ocurrencia del siniestro y su cuantía (art. 1077 C.Co.). La aseguradora debe probar las exclusiones que alegue. Con la reclamación acreditada, tiene un mes para pagar (art. 1080); si no, corren intereses moratorios.','Carta de reclamación + fotos fechadas + cotizaciones + facturas + copia de la póliza.'],
+ ['Objeción','Cuando la aseguradora dice que no.','La negativa debe ser seria, motivada y por escrito. No es la última palabra: la mayoría se resuelve aportando la prueba que faltaba, y para eso está tu asesor. Si el caso no se destraba, existe el Defensor del Consumidor Financiero de la entidad, gratuito.','“Objetamos por exclusión de preexistencia” sin explicar cuál preexistencia no es una objeción seria.'],
+ ['Prescripción','La fecha límite para reclamar.','La acción derivada del contrato de seguro prescribe en 2 años contados desde que el interesado conoció o debió conocer el hecho (prescripción ordinaria, art. 1081 C.Co.). Hay también una prescripción extraordinaria de 5 años. No dejes que se venza.','Sismo del 10 de agosto de 2026 → el reloj ordinario corre hasta agosto de 2028.'],
+ ['Coeficiente de copropiedad','Tu porcentaje del edificio.','Índice que fija la participación de cada unidad en los bienes comunes. Determina cuánto aportas y, si la indemnización llega a repartirse, cuánto te toca.','Apartamento con coeficiente de 1,8% recibe el 1,8% de lo que se reparta.'],
+ ['Ajustador','El perito que le pone número al daño.','Profesional independiente contratado por la aseguradora para verificar la ocurrencia y valorar la pérdida. Su informe pesa mucho, así que conviene estar presente en la visita y tener a la mano las cotizaciones.','Si su cifra queda por debajo de la tuya, se sustenta con cotizaciones formales: ahí es donde el asesor negocia el número.'],
+ ['Cláusula de valor admitido','El valor pactado no se discute.','Cuando se pacta, la aseguradora acepta de antemano el valor del bien y renuncia a aplicar la regla proporcional. Es el mejor antídoto contra el infraseguro.','Maquinaria especializada asegurada con valor admitido: no te aplican infraseguro aunque el avalúo cambie.'],
+ ['Primer riesgo absoluto','Cubierto hasta el tope, sin castigo por infraseguro.','Modalidad en la que se asegura una suma menor al valor total, pero se indemniza el 100% de la pérdida hasta ese límite sin aplicar regla proporcional. Útil cuando es improbable perderlo todo.','Contenidos asegurados a primer riesgo por $80M: si pierdes $50M, te reconocen $50M completos.']
+];
+
+
+
+/* SEMILLA DE CLAUSULADOS. Nunca inventes un deducible de una aseguradora
+   real: si no lo leíste en el clausulado, va como 'referencia de mercado'.
+   Hasta Dónde — https://github.com/  ·  licencia MIT  */
+
+const CLAUSULADOS_SEED = [
+ {aseguradora:'Referencia de mercado', producto:'Copropiedad / PH – áreas comunes', ramo:'PH', codigo:'—',
+  ded:'1% – 3% del valor asegurable del ítem afectado', min:'3 – 10 SMMLV', verificado:false,
+  notas:'La Ley 675 de 2001 obliga a asegurar bienes comunes contra incendio y terremoto. Verifica que el amparo esté otorgado y que el valor asegurado corresponda a costo de reconstrucción actual, no al avalúo catastral.'},
+ {aseguradora:'Referencia de mercado', producto:'Multirriesgo PYME', ramo:'PYME', codigo:'—',
+  ded:'1% – 3% del valor asegurable, por ítem afectado', min:'2 – 6 SMMLV', verificado:false,
+  notas:'Edificio, maquinaria, mercancía y equipo electrónico suelen tener deducibles distintos. El lucro cesante casi siempre usa deducible en días (periodo de carencia), no en pesos.'},
+ {aseguradora:'Referencia de mercado', producto:'Hogar voluntario', ramo:'Hogar', codigo:'—',
+  ded:'1% – 2% del valor asegurable de la estructura', min:'1 – 3 SMMLV', verificado:false,
+  notas:'Estructura y contenidos se manejan como ítems separados. Confirma si los contenidos están a valor de reposición a nuevo o a valor real.'},
+ {aseguradora:'Referencia de mercado', producto:'Incendio y terremoto ligado a crédito hipotecario', ramo:'Hogar', codigo:'—',
+  ded:'Según licitación de cada banco', min:'Variable', verificado:false,
+  notas:'Lo contrata el banco y protege su interés asegurable. Con frecuencia cubre solo estructura y por el saldo de la deuda. Los contenidos suelen quedar por fuera. La carátula la tiene el banco y la entrega cuando se solicita.'},
+ {aseguradora:'Referencia de mercado', producto:'Automóviles todo riesgo', ramo:'Autos', codigo:'—',
+  ded:'10% del valor de la pérdida, mín. 1 – 2 SMMLV (daños parciales)', min:'1 – 2 SMMLV', verificado:false,
+  notas:'Los eventos de la naturaleza suelen entrar en daños parciales y pérdida total. El SOAT no cubre el vehículo en ningún caso. Revisa el umbral de pérdida total y el tratamiento del salvamento.'}
+];
+
+
+
+/* PLAZOS legales — [cuándo, qué, por qué]
+   Hasta Dónde — https://github.com/  ·  licencia MIT  */
+
+const PLAZOS = [
+ ['Hoy mismo','Documenta antes de tocar nada','Fotos y video con fecha visible, desde varios ángulos, del daño y del bien completo. No botes ni repares definitivamente lo dañado hasta que pase el ajustador, salvo que haya riesgo para las personas. Sí puedes hacer medidas urgentes para evitar que el daño crezca: eso es una obligación tuya y la póliza suele reembolsarlo.'],
+ ['Dentro de 3 días','Da aviso del siniestro','El Código de Comercio (art. 1075) pide avisar dentro de los 3 días siguientes a que conociste el hecho. El aviso lo puede radicar tu asesor y no necesita que tengas los números todavía: basta con reportar que hubo daño. Varias compañías ampliaron plazos por la emergencia, pero avisar temprano no cuesta nada.'],
+ ['Cuando reúnas el soporte','Radica la reclamación formal','La ley pide probar que ocurrió y cuánto costó (art. 1077). La carta de reclamación y el armado del expediente los hace tu asesor; lo que necesita de ti son los soportes de la lista de documentos que aparece en tu radiografía.'],
+ ['Un mes después de radicar','La aseguradora debe pagar','Con la reclamación acreditada, la compañía tiene un mes para pagar (art. 1080). Si no lo hace ni objeta seriamente, corren intereses moratorios a tu favor.'],
+ ['Si objetan','Una objeción no es el final','Que la aseguradora objete no cierra el caso: casi siempre se resuelve aportando la prueba que faltaba. La objeción llega por escrito y motivada, y ahí es donde tu asesor arma la respuesta. Si aun así no se destraba, existe el Defensor del Consumidor Financiero de la entidad, que es gratuito.'],
+ ['Hasta agosto de 2028','El límite real','La acción prescribe en 2 años desde que conociste o debiste conocer el hecho. Para el sismo del 10 de agosto de 2026, ese reloj corre hasta agosto de 2028. Suena lejos; no lo es.']
+];
+
+
+
+/* CAPA DE PANTALLA — todo lo que toca el DOM vive aquí y solo aquí.
+   Hasta Dónde — https://github.com/  ·  licencia MIT  */
+
+
+function pintarCinta(elCinta, elRegla, r) {
+  const T = Math.max(r.perdida, 1);
+  const seg = [
+    { c:'d', v: r.deducible,      t:'Deducible' },
+    { c:'i', v: r.porInfraseguro, t:'Infraseguro' },
+    { c:'x', v: r.porTope || 0,    t:'Sobre el límite' },
+    { c:'r', v: r.indemnizacion,  t:'Recibes' }
+  ].filter(s => s.v > 0);
+
+  elCinta.innerHTML = seg.map(s => {
+    const pc = s.v / T * 100;
+    return `<div class="seg ${s.c}" style="width:${pc}%" title="${s.t}: ${cop(s.v)}">
+      <span>${pc > 22 ? s.t + ' ' + copCorto(s.v) : (pc > 9 ? copCorto(s.v) : '')}</span></div>`;
+  }).join('') || '<div class="seg d" style="width:100%"><span>Sin datos</span></div>';
+
+  if (elRegla) {
+    let h = '';
+    for (let i = 0; i <= 20; i++) {
+      const may = i % 5 === 0;
+      h += `<i class="${may?'mayor':''}" style="left:${i*5}%;height:${may?12:6}px"></i>`;
+    }
+    elRegla.innerHTML = h;
+  }
+}
+
+(function heroDemo(){
+  const r = calcular({ perdida:80e6, valorAsegurado:2000e6, valorReal:2000e6,
+                       baseDeducible:'valorAsegurado', dedPct:2, dedMinSMMLV:3 });
+  pintarCinta(document.getElementById('heroCinta'), document.getElementById('heroRegla'), r);
+  document.getElementById('heroSub').textContent =
+    `Edificio asegurado en $2.000 M · deducible 2% del valor asegurado · recibes ${cop(r.indemnizacion)}`;
+})();
+
+/* ============================================================
+   4. COMPARADOR DE DEDUCIBLES
+   ============================================================ */
+(function susto(){
+  const sVal=document.getElementById('sVal'), sPer=document.getElementById('sPer'), sDed=document.getElementById('sDed');
+  function upd(){
+    const VA = +sVal.value * 1e6, P = +sPer.value * 1e6, pct = +sDed.value;
+    document.getElementById('sValTxt').textContent = cop(VA);
+    document.getElementById('sPerTxt').textContent = cop(P);
+    document.getElementById('sDedTxt').textContent = pct.toString().replace('.',',') + '%';
+
+    const creido = Math.max(0, P - P*pct/100);
+    const rReal  = calcular({perdida:P, valorAsegurado:VA, valorReal:VA, baseDeducible:'valorAsegurado', dedPct:pct, dedMinSMMLV:3});
+
+    document.getElementById('sCreias').textContent = cop(creido);
+    const el = document.getElementById('sReal');
+    el.textContent = cop(rReal.indemnizacion);
+    document.getElementById('sMinimo').textContent = rReal.indemnizacion === 0
+      ? `Con estos números la indemnización es CERO: el deducible (${cop(rReal.deducibleTeorico)}) se come toda la pérdida. Diferencia con lo que creías: ${cop(creido)}.`
+      : `Deducible real: ${cop(rReal.deducibleTeorico)}${rReal.mandaMinimo?' (manda el mínimo de 3 SMMLV)':''}. Diferencia con lo que creías: ${cop(creido - rReal.indemnizacion)} menos en tu bolsillo.`;
+  }
+  [sVal,sPer,sDed].forEach(s=>s.addEventListener('input',upd)); upd();
+})();
+
+let estado = { ramo:null, paso:0, datos:{} };
+const $ = id => document.getElementById(id);
+
+function pasosDe() {
+  if (!estado.ramo) return [];
+  return RAMOS[estado.ramo].pasos;
+}
+
+function pintarWizard() {
+  const cuerpo = $('cuerpoPaso'), nav = $('wizNav'), pips = $('pasos');
+
+  // Paso 0: escoger ramo
+  if (!estado.ramo) {
+    pips.innerHTML = '<span class="pcount">Empecemos</span>';
+    cuerpo.innerHTML = `
+      <div class="preg">¿Qué póliza vamos a revisar?</div>
+      <p class="ayuda">Escoge una. Puedes volver y revisar otra cuando quieras: nada se guarda en ningún servidor.</p>
+      <div class="ops">${Object.entries(RAMOS).map(([k,r])=>`
+        <button class="op" data-ramo="${k}"><b>${r.nombre}</b><i>${r.intro.slice(0,72)}…</i></button>`).join('')}</div>`;
+    nav.innerHTML = '';
+    cuerpo.querySelectorAll('[data-ramo]').forEach(b => b.onclick = () => {
+      estado.ramo = b.dataset.ramo; estado.paso = 0; estado.datos = {};
+      $('res').classList.remove('on'); pintarWizard();
+    });
+    return;
+  }
+
+  const pasos = pasosDe(), p = pasos[estado.paso], d = estado.datos;
+
+  pips.innerHTML = pasos.map((_,i)=>`<span class="pip ${i<estado.paso?'done':i===estado.paso?'on':''}"></span>`).join('')
+    + `<span class="pcount">${estado.paso+1} / ${pasos.length}</span>`;
+
+  let html = `<div class="preg">${p.preg}</div>`;
+  if (p.ayuda) html += `<p class="ayuda">${p.ayuda}</p>`;
+
+  if (p.tipo === 'opciones') {
+    html += `<div class="ops">${p.ops.map(([v,t,s])=>`
+      <button class="op ${d[p.k]===v?'sel':''}" data-v="${v}"><b>${t}</b>${s?`<i>${s}</i>`:''}</button>`).join('')}</div>`;
+  } else if (p.tipo === 'multi') {
+    const sel = d[p.k] || [];
+    html += `<div class="ops">${p.ops.map(([v,t,s])=>`
+      <button class="op ${sel.includes(v)?'sel':''}" data-m="${v}"><b>${sel.includes(v)?'✓ ':''}${t}</b>${s?`<i>${s}</i>`:''}</button>`).join('')}</div>`;
+  } else if (p.tipo === 'campos') {
+    html += `<div class="campos">${p.campos.map(c=>{
+      if (c.tipo === 'select') return `<div class="campo"><label for="f_${c.k}">${c.l}</label>
+        <select id="f_${c.k}" data-k="${c.k}">${c.ops.map(([v,t])=>`<option value="${v}" ${d[c.k]===v?'selected':''}>${t}</option>`).join('')}</select>
+        <div class="pista">${c.pista||''}</div></div>`;
+      const val = d[c.k] !== undefined ? d[c.k] : (c.def !== undefined ? c.def : '');
+      return `<div class="campo"><label for="f_${c.k}">${c.l}</label>
+        <input id="f_${c.k}" data-k="${c.k}" type="number" inputmode="decimal" step="${c.paso||1000000}" value="${val}" placeholder="0">
+        <div class="pista">${c.pista||''}</div></div>`;
+    }).join('')}</div>`;
+  }
+  cuerpo.innerHTML = html;
+
+  // Listeners
+  cuerpo.querySelectorAll('[data-v]').forEach(b => b.onclick = () => {
+    d[p.k] = b.dataset.v; avanzar();
+  });
+  cuerpo.querySelectorAll('[data-m]').forEach(b => b.onclick = () => {
+    const s = new Set(d[p.k] || []);
+    const v = b.dataset.m;
+    if (v === 'ninguno') { d[p.k] = s.has('ninguno') ? [] : ['ninguno']; }
+    else { s.delete('ninguno'); s.has(v) ? s.delete(v) : s.add(v); d[p.k] = [...s]; }
+    pintarWizard();
+  });
+  cuerpo.querySelectorAll('[data-k]').forEach(i => {
+    i.oninput = () => { d[i.dataset.k] = i.type === 'number' ? +i.value : i.value; };
+    if (d[i.dataset.k] === undefined && i.value !== '') d[i.dataset.k] = i.type === 'number' ? +i.value : i.value;
+  });
+
+  // Navegación
+  const ultimo = estado.paso === pasos.length - 1;
+  nav.innerHTML = `
+    <button class="btn ${ultimo?'verde':''}" id="bSig">${ultimo ? 'Ver mi radiografía →' : 'Continuar →'}</button>
+    ${estado.paso > 0 ? '<button class="link-btn" id="bAtras">Atrás</button>' : ''}
+    <button class="link-btn" id="bReset" style="margin-left:auto">Cambiar de póliza</button>`;
+  $('bSig').onclick = avanzar;
+  if ($('bAtras')) $('bAtras').onclick = () => { estado.paso--; pintarWizard(); };
+  $('bReset').onclick = () => { estado = {ramo:null,paso:0,datos:{}}; $('res').classList.remove('on'); pintarWizard(); };
+}
+
+function avanzar() {
+  const pasos = pasosDe();
+  if (estado.paso < pasos.length - 1) { estado.paso++; pintarWizard(); }
+  else { mostrarResultado(); }
+}
+
+/* ============================================================
+   10. RESULTADO
+   ============================================================ */
+function mostrarResultado() {
+  const d = estado.datos, ramo = RAMOS[estado.ramo];
+  const r = calcular(d);
+  const sem = ramo.reglas(d);
+  const respuestas = generarRespuestas(d, r);
+  const docs = [...DOCUMENTOS.comun, ...(DOCUMENTOS[estado.ramo] || [])];
+
+  $('res').classList.add('on');
+  $('res').innerHTML = `
+    <div style="margin-top:40px">
+      <span class="eyebrow">Tu radiografía · ${ramo.nombre} · ${new Date().toLocaleDateString('es-CO')}</span>
+      <h2 style="font-size:clamp(26px,4.6vw,42px);max-width:20ch">${titular(r)}</h2>
+
+      <div class="cinta-caja" style="margin-top:26px">
+        <div class="cinta-top">
+          <div><span class="rot">Cómo se reparte tu pérdida</span>
+          <div class="mono" style="font-size:15px;margin-top:4px">Pérdida declarada: ${cop(r.perdida)}</div></div>
+          <div class="mono" style="font-size:13px;color:var(--tinta2)">Recuperas el ${r.pctRecuperado.toFixed(1).replace('.',',')}%</div>
+        </div>
+        <div class="regla" id="resRegla" aria-hidden="true"></div>
+        <div class="cinta" id="resCinta" role="img" aria-label="Reparto de la pérdida"></div>
+        <div class="leyenda">
+          <b><i class="dot d"></i> Deducible ${cop(r.deducible)}</b>
+          ${r.porInfraseguro>0?`<b><i class="dot i"></i> Infraseguro ${cop(r.porInfraseguro)}</b>`:''}
+          <b><i class="dot r"></i> Indemnización ${cop(r.indemnizacion)}</b>
+        </div>
+      </div>
+
+      <div class="res-cifras">
+        <div class="cifra destacada"><span class="eyebrow">Recibirías aprox.</span><div class="num">${cop(r.indemnizacion)}</div></div>
+        <div class="cifra"><span class="eyebrow">Sale de tu bolsillo</span><div class="num">${cop(r.deTuBolsillo)}</div></div>
+        <div class="cifra"><span class="eyebrow">Deducible aplicado</span><div class="num">${cop(r.deducibleTeorico)}</div></div>
+      </div>
+
+      ${r.hayInfra ? `<div class="aviso"><b>Tienes infraseguro: estás asegurado al ${(r.factor*100).toFixed(0)}% de lo que vale.</b>
+        Por eso te descuentan ${cop(r.porInfraseguro)} antes de aplicar el deducible, aunque la pérdida sea parcial. Es la regla proporcional del art. 1102 del Código de Comercio. Actualizar el valor asegurado en la renovación es la corrección más barata que existe.</div>` : ''}
+      ${r.mandaMinimo ? `<div class="aviso"><b>En tu caso manda el deducible mínimo, no el porcentaje.</b>
+        El mínimo en SMMLV (${cop((+d.dedMinSMMLV||0)*CONFIG.SMMLV)}) resultó mayor que el porcentaje pactado. Por eso el descuento es más alto de lo que esperabas.</div>` : ''}
+      ${r.indemnizacion === 0 ? `<div class="aviso"><b>Con estos números la indemnización sería cero.</b>
+        El deducible absorbe toda la pérdida. Esto no significa que no debas avisar el siniestro: avísalo igual, porque los números cambian cuando el ajustador valora el daño real, y porque el aviso protege tus plazos.</div>` : ''}
+
+      <h3 style="font-size:24px;margin:34px 0 12px">Tu semáforo</h3>
+      <div class="semaforo">
+        ${sem.map(([tipo,tag,tit,txt])=>`
+          <div class="fila ${tipo}"><div class="ico">${tipo==='si'?'SÍ':tipo==='ojo'?'OJO':'NO'} · ${tag}</div>
+          <div><b>${tit}</b><span>${txt}</span></div></div>`).join('')}
+      </div>
+
+      <h3 style="font-size:24px;margin:34px 0 12px">Lo que ya está respondido</h3>
+      <p style="font-size:15px;color:var(--tinta2);max-width:62ch">Estas son las dudas que le salen a todo el mundo al llegar aquí. Están resueltas para tu caso.</p>
+      <div class="grid g2" style="margin-top:14px">
+        ${respuestas.map(([t,x])=>`<div class="card"><h3>${t}</h3><p>${x}</p></div>`).join('')}
+      </div>
+
+      <h3 style="font-size:24px;margin:34px 0 8px">Tu carpeta</h3>
+      <p style="font-size:15px;color:var(--tinta2);max-width:62ch">Esto es lo único que depende de ti, y es lo que más demora una reclamación cuando queda incompleto. Ve marcando.</p>
+      <div class="card" style="margin-top:12px">
+        <div class="checklist">
+          ${docs.map((doc,i)=>`<label class="chk"><input type="checkbox" data-doc="${i}"><span>${doc}</span></label>`).join('')}
+        </div>
+        <div class="progreso"><div class="barra"><i id="barraDocs"></i></div><span class="mono" id="txtDocs">0 de ${docs.length}</span></div>
+      </div>
+
+      <h3 style="font-size:24px;margin:34px 0 8px">Qué sigue, y quién lo hace</h3>
+      <div class="semaforo" style="margin-top:12px">
+        ${PROCESO.map(([quien,que,x])=>`
+          <div class="fila si"><div class="ico">${quien.toUpperCase()}</div>
+          <div><b>${que}</b><span>${x}</span></div></div>`).join('')}
+      </div>
+
+      <div class="cta-row no-print" style="margin-top:26px">
+        <button class="btn verde" onclick="window.print()">Descargar / imprimir mi reporte</button>
+        ${ASESOR.mostrar ? `<button class="btn" id="bEnviar">Enviar esto a ${ASESOR.nombre}</button>` : ''}
+        <button class="btn ghost" id="bCopiar">Copiar el resumen</button>
+        <button class="btn ghost" id="bOtra">Revisar otra póliza</button>
+      </div>
+
+      ${cajaAsesor()}
+    </div>`;
+
+  pintarCinta($('resCinta'), $('resRegla'), r);
+  $('bOtra').onclick = () => { estado={ramo:null,paso:0,datos:{}}; $('res').classList.remove('on'); pintarWizard(); $('diagnostico').scrollIntoView({behavior:'smooth'}); };
+  const resumen = () =>
+    `PRE-DIAGNÓSTICO — Hasta Dónde\n` +
+    `Póliza: ${ramo.nombre}\n` +
+    `Fecha: ${new Date().toLocaleDateString('es-CO')}\n\n` +
+    `Valor asegurado: ${cop(+d.valorAsegurado || 0)}\n` +
+    `Valor real estimado: ${cop(+d.valorReal || 0)}\n` +
+    `Pérdida estimada: ${cop(r.perdida)}\n` +
+    `Deducible informado: ${(+d.dedPct || 0)}% sobre ${d.baseDeducible === 'perdida' ? 'la pérdida' : 'el valor asegurado'}, mínimo ${(+d.dedMinSMMLV || 0)} SMMLV\n\n` +
+    `Deducible calculado: ${cop(r.deducibleTeorico)}\n` +
+    (r.hayInfra ? `Infraseguro: asegurado al ${(r.factor * 100).toFixed(0)}% (${cop(r.porInfraseguro)})\n` : '') +
+    `Indemnización estimada: ${cop(r.indemnizacion)}\n\n` +
+    `Documentos pendientes: ${docs.length - marcados().length} de ${docs.length}\n` +
+    marcados('pendientes').map(t => `- ${t}`).join('\n') +
+    `\n\nCifras ingresadas por el cliente. Sujetas a verificación contra la carátula y el clausulado.`;
+
+  const marcados = (modo) => {
+    const cajas = [...document.querySelectorAll('[data-doc]')];
+    return cajas.filter(c => modo === 'pendientes' ? !c.checked : c.checked)
+                .map(c => c.parentElement.querySelector('span').textContent);
+  };
+
+  const actualizarDocs = () => {
+    const total = docs.length, hechos = marcados().length;
+    const b = $('barraDocs'); if (b) b.style.width = (hechos / total * 100) + '%';
+    const t = $('txtDocs'); if (t) t.textContent = `${hechos} de ${total}`;
+  };
+  document.querySelectorAll('[data-doc]').forEach(c => c.onchange = actualizarDocs);
+
+  $('bCopiar').onclick = () => {
+    navigator.clipboard.writeText(resumen()).then(() => {
+      $('bCopiar').textContent = 'Copiado ✓';
+      setTimeout(() => $('bCopiar').textContent = 'Copiar el resumen', 2000);
+    });
+  };
+
+  if ($('bEnviar')) $('bEnviar').onclick = () => {
+    const texto = encodeURIComponent(resumen());
+    window.open(ASESOR.whatsapp
+      ? `https://wa.me/${ASESOR.whatsapp}?text=${texto}`
+      : `mailto:${ASESOR.correo}?subject=${encodeURIComponent('Pre-diagnóstico — ' + ramo.nombre)}&body=${texto}`,
+      '_blank');
+  };
+
+  $('res').scrollIntoView({behavior:'smooth'});
+}
+
+function titular(r) {
+  if (r.indemnizacion === 0) return 'Con estos números, la póliza no pagaría nada.';
+  if (r.pctRecuperado < 35)  return `Recuperarías cerca de un tercio: ${cop(r.indemnizacion)}.`;
+  if (r.pctRecuperado < 70)  return `Recuperarías ${cop(r.indemnizacion)} de ${cop(r.perdida)}.`;
+  return `Tu póliza responde bien: ${cop(r.indemnizacion)}.`;
+}
+
+/* Respuestas anticipadas: lo que el cliente iba a llamar a preguntar. */
+function generarRespuestas(d, r) {
+  const a = [];
+
+  a.push(['¿Por qué el deducible es tan alto?',
+    d.baseDeducible === 'perdida'
+      ? `Tu deducible se calcula sobre el valor de la pérdida: ${(+d.dedPct||0)}% de ${cop(r.perdida)}. Además hay un mínimo en salarios mínimos, y se aplica el que resulte mayor de los dos.`
+      : `Porque no se calcula sobre lo que perdiste sino sobre el valor asegurado del bien: ${(+d.dedPct||0)}% de ${cop(+d.valorAsegurado||0)} da ${cop(r.deducibleTeorico)}. Así funciona el amparo de terremoto en el mercado colombiano; no es un cobro nuevo ni una penalización por reclamar.`]);
+
+  if (r.mandaMinimo) a.push(['¿Por qué no coincide con el porcentaje?',
+    `Porque en tu caso pesa más el mínimo pactado: ${(+d.dedMinSMMLV||0)} SMMLV son ${cop((+d.dedMinSMMLV||0)*CONFIG.SMMLV)}, y eso supera al porcentaje. Siempre se aplica el mayor de los dos.`]);
+
+  if (r.hayInfra) a.push(['¿Por qué me descuentan si la pérdida fue parcial?',
+    `Es la regla proporcional del art. 1102 del Código de Comercio. Como el bien está asegurado al ${(r.factor*100).toFixed(0)}% de lo que vale, la indemnización se reduce en esa misma proporción. Se corrige actualizando el valor asegurado en la renovación, y suele costar mucho menos de lo que la gente imagina.`]);
+
+  if (r.indemnizacion === 0) a.push(['Si no me van a pagar, ¿para qué reportar?',
+    'Porque las cifras de arriba son tu estimado, no el del ajustador. Cuando valoran en sitio casi siempre aparecen daños que no se habían contado, y el número cambia. Reportar no cuesta nada y mantiene el caso vivo.']);
+
+  a.push(['¿Cuánto se va a demorar?',
+    'El mes que fija la ley empieza a correr cuando el expediente está completo, no desde el día del sismo. Con el volumen de esta emergencia las visitas de ajuste se corrieron, así que la parte que sí puedes acelerar es la carpeta.']);
+
+  if (estado.ramo === 'ph') a.push(['¿A quién le llega la plata?',
+    'A la copropiedad, no a cada propietario. En propiedad horizontal la indemnización se destina primero a reconstruir el edificio; solo si eso no ocurre se reparte según coeficiente de copropiedad.']);
+  if (estado.ramo === 'pyme') a.push(['¿Me pagan lo que dejé de vender?',
+    d.lucro === 'si' ? 'Sí, si tienes lucro cesante contratado, y se prueba con contabilidad: declaraciones, IVA y facturación de los 12 meses previos. Ese soporte es el que decide la cifra.'
+                     : 'Solo si tienes contratado el amparo de lucro cesante. Sin él te reparan el local, pero los meses sin facturar corren por tu cuenta. Es lo que más conviene revisar en la renovación.']);
+  if (estado.ramo === 'auto') a.push(['¿Me dan uno nuevo?',
+    'No. Se indemniza el valor comercial del vehículo al día del siniestro según la guía de referencia, no lo que pagaste ni lo que cuesta uno nuevo. Y si declaran pérdida total y te quedas con los restos, se descuenta el salvamento.']);
+  if (estado.ramo === 'hogar') a.push(['¿Y mis muebles?',
+    'Contenidos y estructura son dos coberturas distintas. Si tu seguro viene del crédito hipotecario, lo más probable es que los contenidos no estén incluidos: eso se verifica en la carátula antes de armar el inventario.']);
+
+  a.push(['¿Tengo que hablar yo con la aseguradora?',
+    ASESOR.mostrar
+      ? `No. ${ASESOR.nombre} radica el aviso, arma el expediente y hace el seguimiento. Lo que se necesita de ti son los documentos de la lista de abajo.`
+      : 'No necesariamente. El aviso y el expediente los puede radicar tu intermediario; lo que se necesita de ti son los documentos de la lista de abajo.']);
+
+  return a;
+}
+
+/* ============================================================
+   11. GLOSARIO — render
+   ============================================================ */
+function pintarGlosario(filtro='') {
+  const f = filtro.toLowerCase().trim();
+  const items = GLOSARIO.filter(([t,c,l]) => !f || (t+c+l).toLowerCase().includes(f));
+  $('listaGlosario').innerHTML = items.length ? items.map(([t,c,l,e])=>`
+    <details class="term"><summary>${t}</summary>
+      <div class="cuerpo"><div class="corto">${c}</div><div>${l}</div>
+      ${e?`<div class="ej"><b>Ejemplo:</b> ${e}</div>`:''}</div></details>`).join('')
+    : `<p style="color:var(--tinta2)">No encontramos ese término. Escríbelo y lo agregamos: el glosario también se nutre.</p>`;
+}
+$('buscaTermino').addEventListener('input', e => pintarGlosario(e.target.value));
+pintarGlosario();
+
+/* ============================================================
+   12. CLAUSULADOS — render + nutrir
+   ============================================================ */
+let CLAUSULADOS = JSON.parse(JSON.stringify(CLAUSULADOS_SEED));
+
+function pintarClausulados() {
+  $('tablaClaus').innerHTML = `
+    <thead><tr><th>Aseguradora</th><th>Producto</th><th>Ramo</th><th>Código</th>
+    <th>Deducible terremoto</th><th>Mínimo</th><th>Notas</th></tr></thead>
+    <tbody>${CLAUSULADOS.map(c=>`<tr>
+      <td><b>${c.aseguradora}</b><br><span class="chip">${c.verificado?'verificado':'referencia de mercado'}</span></td>
+      <td>${c.producto}</td><td>${c.ramo}</td><td class="mono">${c.codigo||'—'}</td>
+      <td>${c.ded||'—'}</td><td class="mono">${c.min||'—'}</td>
+      <td style="max-width:340px;color:var(--tinta2);font-size:13.5px">${c.notas||''}</td>
+    </tr>`).join('')}</tbody>`;
+}
+pintarClausulados();
+
+$('btnAddClaus').onclick = () => {
+  const g = (t,d='') => (prompt(t, d) || '').trim();
+  const aseguradora = g('Aseguradora (ej. la que aparece en tu carátula):'); if (!aseguradora) return;
+  const nuevo = {
+    aseguradora,
+    producto: g('Nombre del producto o póliza:'),
+    ramo: g('Ramo (PH / PYME / Autos / Hogar):'),
+    codigo: g('Código del clausulado (aparece al pie del clausulado):'),
+    ded: g('Deducible de terremoto, tal cual está escrito:'),
+    min: g('Deducible mínimo (ej. 3 SMMLV):'),
+    notas: g('Notas, trampas o sublímites que valga la pena recordar:'),
+    verificado: true
+  };
+  CLAUSULADOS.push(nuevo); pintarClausulados();
+  alert('Agregado. Ahora exporta el JSON y guárdalo junto al archivo para que quede permanente.');
+};
+
+$('btnExport').onclick = () => {
+  const blob = new Blob([JSON.stringify(CLAUSULADOS, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'clausulados.json'; a.click();
+};
+
+$('fileImport').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const arr = JSON.parse(fr.result);
+      if (!Array.isArray(arr)) throw 0;
+      CLAUSULADOS = arr; pintarClausulados();
+    } catch { alert('Ese archivo no tiene el formato esperado. Debe ser una lista JSON como la que produce el botón Exportar.'); }
+  };
+  fr.readAsText(f);
+};
+
+/* Carga opcional de datos externos: si existe datos/clausulados.json, manda ese. */
+fetch('datos/clausulados.json').then(r => r.ok ? r.json() : null).then(j => {
+  if (Array.isArray(j) && j.length) { CLAUSULADOS = j; pintarClausulados(); }
+}).catch(()=>{});
+
+/* ============================================================
+   12.b FIRMA DEL ASESOR
+   ============================================================ */
+function cajaAsesor() {
+  if (!ASESOR.mostrar) return '';
+  const enlace = ASESOR.whatsapp ? `https://wa.me/${ASESOR.whatsapp}` : `mailto:${ASESOR.correo}`;
+  return `<div class="asesor-caja">
+    <div class="quien"><span class="rot">Tu asesor en este caso</span>
+      <b>${ASESOR.nombre}</b>${ASESOR.empresa ? `<i>${ASESOR.empresa}</i>` : ''}
+      <p>${ASESOR.invitacion}</p></div>
+    <a class="btn verde no-print" href="${enlace}" target="_blank" rel="noopener">Escribirle</a>
+  </div>`;
+}
+if (ASESOR.mostrar && $('asesorTop'))
+  $('asesorTop').innerHTML = `Herramienta de <b>${ASESOR.nombre}</b>`;
+
+/* ============================================================
+   13. PLAZOS — render
+   ============================================================ */
+$('lineaPlazos').innerHTML = PLAZOS.map(([p,t,x])=>`
+  <div class="hito"><div class="plazo">${p}</div><h3>${t}</h3><p>${x}</p></div>`).join('');
+
+/* ============================================================
+   14. Arranque
+   ============================================================ */
+pintarWizard();
+
+</script>
+</body>
+</html>
