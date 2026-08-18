@@ -200,6 +200,75 @@ persona lo verifique. Detalles que importan si tocas esto:
   `buscarExclusiones()` nunca cruza de página al juntar el bloque: un
   párrafo cortado a la mitad por un salto de página es peor que no
   mostrarlo.
+- **`LECTOR-PATRONES.md`** documenta patrones reales de una póliza
+  colombiana real de copropiedad (cifras anonimizadas, estructura y
+  vocabulario reales). Si agregas o cambias un buscador, revisa ahí primero
+  si ya hay un ejemplo real que lo cubra — y si consigues clausulados de
+  otras aseguradoras, amplía ese documento antes que adivinar formatos.
+- **SMMLV (mensual) y SMDLV (diario) nunca se convierten uno en el otro.**
+  15 SMDLV es medio salario mensual, no quince: confundirlos multiplica el
+  deducible por ~30. `RX_SMMLV` y `RX_SMDLV` son regex separadas que exigen
+  "mensual"/"diario" completo cuando viene en prosa — la vieja regex de
+  SMMLV aceptaba "salarios mínimos" como substring y por eso hacía match
+  aunque la frase completa dijera "...diarios legales vigentes". Cada
+  candidato de deducible trae `smmlv` y `smdlv` como campos separados,
+  nunca uno inventado a partir del otro, y la UI rotula cuál es cuál.
+- **No hay "el deducible" de una póliza.** `extraerTablaDeducibles()`
+  extrae una fila por amparo (`{amparo, base, pct, smmlv, smdlv,
+  sinDeducible}`), porque en la misma póliza distintos amparos calculan
+  sobre bases distintas (pérdida vs. valor asegurable). Cada fila exige,
+  además del `%`, una señal de que es realmente una fila de deducible (la
+  base o una unidad SMMLV/SMDLV) — un `%` suelto no basta, porque una fila
+  de coaseguro también tiene `%` y no es un deducible. Tampoco se inventa
+  un mínimo cuando la póliza no lo pactó: si no hay SMMLV ni SMDLV en la
+  línea, el campo queda en `null`, no en un valor por defecto.
+- **`extraerValoresPorItem()`** saca el desglose de valor asegurado por
+  ítem (no el total): el deducible de terremoto se calcula sobre el ítem
+  afectado. Los ítems en `$0` se marcan con `enCero: true` — es cobertura
+  no contratada, y suele sorprender en el siniestro.
+- **`ventanas()`** junta cada línea con hasta un puñado de líneas
+  siguientes de la MISMA página, para buscar frases que el PDF partió al
+  ajustar un párrafo al ancho de la hoja (el código del clausulado, el
+  plazo de aviso). A diferencia de una tabla, en un párrafo que fluye sí es
+  razonable asumir que el orden de lectura se conserva — pero igual nunca
+  cruza de página.
+- **Página con codificación rota:** `paginaLegible()` mide la proporción
+  de vocales entre las letras de una página; por debajo de 15% se asume
+  fuente sin tabla de caracteres correcta (el típico "8VWHG" en vez de
+  "Usted") y esa página se saltea entera — no se trata su basura como
+  contenido. El umbral es bajo a propósito: peor descartar una página real
+  por error que dejar pasar una rota.
+- **`limpiarNotaAlPie()`** quita un dígito de nota al pie pegado al nombre
+  de un amparo o al `$` (`"material1 $ 28.000.000.000"` →
+  `"material $ 28.000.000.000"`). Solo borra UN dígito suelto entre una
+  letra y un `$`, nunca una secuencia — para no comerse un número real.
+- **Palabras partidas por el extractor** (`"aut omática"` en vez de
+  `"automática"`) son un problema conocido y **no resuelto**: arreglarlo
+  bien necesitaría un diccionario de español, y un regex mal pensado
+  arriesga corromper texto que sí estaba bien. Se deja así a propósito.
+- Cuando la calidad del texto es muy baja (`muyDudoso`, por debajo de
+  0,4), la página no muestra ninguna cifra: solo el aviso y un enlace al
+  cuestionario manual. El umbral normal de "dudoso" (0,75) sigue avisando
+  arriba de todo, antes de cualquier dato — nunca solo al lado de cada uno.
+- **`generarHuella()`** arma un resumen técnico para diagnosticar por qué
+  falló la lectura, pensado para compartir con quien mejora el lector.
+  Regla dura, sin excepciones: **cero datos del cliente**. Nunca un
+  nombre, NIT, cédula, dirección, contacto o cifra en pesos — solo
+  estructura (qué campo se encontró, en qué página, porcentajes y
+  cantidades de SMMLV/SMDLV). Dos capas de protección, no una sola:
+  `pareceContenerPII()` descarta la línea COMPLETA si huele a dato
+  personal (aunque también tenga una palabra clave técnica), y
+  `enmascararLinea()` oculta cualquier monto en pesos y cualquier número
+  de 3+ dígitos que no sea un porcentaje o una cantidad de SMMLV/SMDLV —
+  en este dominio esas dos cosas nunca pasan de 2 dígitos, así que un
+  número más largo es casi siempre un NIT, una cédula o un número de
+  póliza. Si agregas una palabra clave nueva a `PALABRAS_CLAVE_HUELLA`,
+  agrega también un caso envenenado con datos personales falsos en
+  `test/lector.test.mjs` que confirme que siguen sin colarse — es la
+  única forma de que un cambio futuro no rompa esta garantía en silencio.
+  La UI siempre muestra el texto en un `<textarea>` editable antes de
+  copiarlo, nunca lo copia directo: la persona revisa y puede agregar a
+  mano la aseguradora o el producto si quiere, pero eso nunca se adivina.
 
 ## Flujo de trabajo
 

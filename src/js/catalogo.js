@@ -24,7 +24,7 @@ const PASO_DEDUCIBLE = {
      ops:[['valorAsegurado','El valor asegurado del bien (lo más común)'],['perdida','El valor de la pérdida']],
      pista:'Esta sola línea puede cambiar tu indemnización en decenas de millones.'},
     {k:'dedPct', l:'Porcentaje (%)', def:2, paso:0.25, pista:'Terremoto en PH y PYME suele ir entre 1% y 3%.'},
-    {k:'dedMinSMMLV', l:'Mínimo en SMMLV', def:3, paso:1, pista:`1 SMMLV 2026 = ${cop(CONFIG.SMMLV)}. Se aplica el que resulte mayor: el % o el mínimo.`}
+    {k:'dedMinSMMLV', l:'Mínimo en SMMLV', paso:1, pista:`Déjalo en 0 si tu póliza no pactó un mínimo para terremoto — no todas lo tienen. 1 SMMLV 2026 = ${cop(CONFIG.SMMLV)}. Se aplica el que resulte mayor: el % o el mínimo.`}
   ]
 };
 

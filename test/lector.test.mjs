@@ -2,7 +2,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { agruparLineas, aplanarPaginas, calidadTexto, extraerCandidatos,
   buscarDeducibleTerremoto, buscarVigencia, buscarValorAsegurado, buscarCodigoClausulado,
-  buscarDefiniciones, buscarExclusiones, pareceImagen } from '../src/js/lector.js';
+  buscarDefiniciones, buscarExclusiones, extraerTablaDeducibles, extraerValoresPorItem,
+  extraerCoaseguro, buscarPlazoAviso, buscarAnticipoIndemnizacion, buscarDemeritoPorUso,
+  paginaLegible, limpiarNotaAlPie, pareceContenerPII, enmascararLinea, lineasClaveParaHuella,
+  encabezadosDeTabla, estadoCampos, generarHuella, pareceImagen } from '../src/js/lector.js';
+
+/* Helper: arma líneas numeradas a partir de un arreglo de texto plano, todas
+   en la misma página salvo que se indique lo contrario. Los ejemplos de
+   abajo vienen de LECTOR-PATRONES.md — cifras anonimizadas, estructura y
+   vocabulario reales, tomados de una póliza colombiana real de copropiedad. */
+const enPagina = (pagina, textos) => textos.map((texto, i) => ({ pagina, linea: i + 1, texto }));
 
 /* pdf.js entrega y creciente hacia arriba de la página. transform = [a,b,c,d,x,y] */
 const item = (str, x, y) => ({ str, transform: [1, 0, 0, 1, x, y] });
@@ -44,8 +53,54 @@ test('buscarDeducibleTerremoto exige el evento Y un número en la misma línea',
   assert.ok(positivo);
   assert.equal(positivo.pct, '2');
   assert.equal(positivo.smmlv, '3');
+  assert.equal(positivo.smdlv, null);
   assert.equal(positivo.pagina, 3);
   assert.equal(positivo.linea, 5);
+});
+
+/* ============================================================
+   Punto 0 (LECTOR-PATRONES.md): SMDLV (diario) no es SMMLV (mensual).
+   15 SMDLV es medio salario mensual, no quince — confundirlos multiplica
+   el deducible por ~30. Nunca se convierte uno en otro: son campos
+   separados siempre.
+   ============================================================ */
+test('SMDLV y SMMLV nunca se mezclan: un mínimo en SMDLV no aparece como smmlv', () => {
+  const r = buscarDeducibleTerremoto([
+    { pagina: 1, linea: 1, texto: 'Deducible terremoto: 1% del valor asegurable mínimo 15 SMDLV' }
+  ]);
+  assert.ok(r);
+  assert.equal(r.smdlv, '15');
+  assert.equal(r.smmlv, null, 'un mínimo en SMDLV jamás debe terminar en el campo de SMMLV');
+});
+
+test('acepta SMLDV como variante de SMDLV (siglas trocadas, vista en pólizas reales)', () => {
+  const r = buscarDeducibleTerremoto([
+    { pagina: 1, linea: 1, texto: 'Deducible terremoto: 1% de la pérdida mínimo 0.5 SMLDV' }
+  ]);
+  assert.ok(r);
+  assert.equal(r.smdlv, '0.5');
+});
+
+test('el texto en prosa "salarios mínimos diarios" no se confunde con SMMLV', () => {
+  // Regresión del bug real: una regex vieja para SMMLV que solo pedía
+  // "salarios mínimos" (sin exigir "mensuales") hacía match aunque la frase
+  // completa dijera "salarios mínimos diarios legales vigentes" — el mismo
+  // error de 30x pero en prosa en vez de sigla.
+  const r = buscarDeducibleTerremoto([
+    { pagina: 1, linea: 1, texto: 'Deducible terremoto: 2% de la pérdida mínimo 15 salarios mínimos diarios legales vigentes' }
+  ]);
+  assert.ok(r);
+  assert.equal(r.smmlv, null, 'la frase dice "diarios": nunca debe leerse como SMMLV');
+  assert.equal(r.smdlv, '15');
+});
+
+test('el texto en prosa "salario mínimo mensual legal vigente" sí es SMMLV', () => {
+  const r = buscarDeducibleTerremoto([
+    { pagina: 1, linea: 1, texto: 'Deducible terremoto: 2% de la pérdida mínimo 3 salario mínimo mensual legal vigente' }
+  ]);
+  assert.ok(r);
+  assert.equal(r.smmlv, '3');
+  assert.equal(r.smdlv, null);
 });
 
 test('buscarDeducibleTerremoto no inventa nada si falta el evento o el número', () => {
@@ -119,6 +174,22 @@ test('buscarDefiniciones no cruza el contexto a la página siguiente', () => {
   assert.equal(r.contexto, 'Valor admitido');
 });
 
+test('buscarDefiniciones no arrastra el encabezado siguiente dentro del contexto', () => {
+  // Regresión real: encontrada probando con una póliza sintética. Cuando el
+  // PDF no deja una línea en blanco real entre el final de una cláusula y
+  // el siguiente encabezado, "líneas de contexto" sin límite de frase se
+  // comía el título de la sección de al lado — en este caso, la definición
+  // de "valor real" arrastraba "Exclusiones" como si fuera parte de ella.
+  const lineas = [
+    { pagina: 3, linea: 1, texto: 'la Compañía pagará la indemnización por su valor real.' },
+    { pagina: 3, linea: 2, texto: 'Exclusiones' },
+    { pagina: 3, linea: 3, texto: 'a) Guerra y actos de terrorismo.' }
+  ];
+  const r = buscarDefiniciones(lineas).find(d => d.termino === 'Valor real');
+  assert.ok(r);
+  assert.equal(r.contexto, 'la Compañía pagará la indemnización por su valor real.');
+});
+
 test('buscarExclusiones junta el bloque hasta el siguiente encabezado, sin cruzar de página', () => {
   const lineas = [
     { pagina: 4, linea: 1, texto: 'Exclusiones' },
@@ -136,4 +207,355 @@ test('buscarExclusiones junta el bloque hasta el siguiente encabezado, sin cruza
 
 test('buscarExclusiones no inventa una sección que no existe', () => {
   assert.equal(buscarExclusiones([{ pagina: 1, linea: 1, texto: 'texto normal de la póliza' }]), null);
+});
+
+/* ============================================================
+   Punto 1: si la póliza no pacta mínimo para terremoto, el mínimo es
+   cero — no se inventa uno por defecto. La fila real de terremoto de
+   LECTOR-PATRONES.md no dice "mínimo" en ninguna parte.
+   ============================================================ */
+test('extraerTablaDeducibles no inventa un mínimo cuando la póliza no lo pactó', () => {
+  const filas = extraerTablaDeducibles(
+    enPagina(6, ['Terremoto    1% del valor asegurable del ítem afectado'])
+  );
+  assert.equal(filas.length, 1);
+  assert.equal(filas[0].amparo, 'Terremoto');
+  assert.equal(filas[0].pct, '1');
+  assert.equal(filas[0].base, 'valorAsegurable');
+  assert.equal(filas[0].smmlv, null);
+  assert.equal(filas[0].smdlv, null);
+});
+
+/* ============================================================
+   Punto 2: no existe "el deducible" de una póliza — existe una tabla, y
+   distintos amparos calculan sobre bases distintas en el mismo documento.
+   ============================================================ */
+test('extraerTablaDeducibles distingue base "de la pérdida" vs "valor asegurable" en la misma póliza', () => {
+  const filas = extraerTablaDeducibles(enPagina(6, [
+    'Amparo básico todo riesgo daño material   5% de la pérdida mínimo 15 SMDLV',
+    'Terremoto                                 1% del valor asegurable del ítem afectado',
+    'Extensión adicional del amparo básico     5% de la pérdida mínimo 15 SMDLV',
+    'Inundación                                5% de la pérdida mínimo 15 SMDLV',
+    'Sabotaje y terrorismo                     10% de la pérdida mínimo 2 SMMLV'
+  ]));
+  assert.equal(filas.length, 5);
+
+  const terremoto = filas.find(f => f.amparo.startsWith('Terremoto'));
+  assert.equal(terremoto.base, 'valorAsegurable');
+  assert.equal(terremoto.smdlv, null);
+
+  const sabotaje = filas.find(f => f.amparo.startsWith('Sabotaje'));
+  assert.equal(sabotaje.base, 'perdida');
+  assert.equal(sabotaje.smmlv, '2');
+  assert.equal(sabotaje.smdlv, null);
+
+  const basico = filas.find(f => f.amparo.startsWith('Amparo básico'));
+  assert.equal(basico.base, 'perdida');
+  assert.equal(basico.smdlv, '15');
+  assert.equal(basico.smmlv, null);
+});
+
+test('extraerTablaDeducibles reconoce "Sin deducible" como un valor explícito, no como ausencia de dato', () => {
+  const filas = extraerTablaDeducibles(enPagina(7, ['Rotura de maquinaria   Sin deducible']));
+  assert.equal(filas.length, 1);
+  assert.equal(filas[0].sinDeducible, true);
+  assert.equal(filas[0].amparo, 'Rotura de maquinaria');
+});
+
+test('extraerTablaDeducibles no confunde un porcentaje de coaseguro con una fila de deducible', () => {
+  // Mismo problema que ya resolvimos para terremoto: un % suelto no basta.
+  const filas = extraerTablaDeducibles(enPagina(2, ['Asegurador   COMPAÑÍA A (Líder) - 10%']));
+  assert.equal(filas.length, 0);
+});
+
+/* ============================================================
+   Punto 3: el valor asegurado es un desglose por ítem, no un total. Los
+   ítems en $0 son cobertura no contratada y hay que marcarlos, no
+   perderlos.
+   ============================================================ */
+test('extraerValoresPorItem captura el desglose completo, incluidos los ítems en $0', () => {
+  const filas = extraerValoresPorItem(enPagina(9, [
+    'Áreas e inmuebles de propiedad común   $ 15.000.000.000',
+    'Cimientos                              $ 0',
+    'Áreas privadas                         $  9.000.000.000',
+    'Muebles y enseres                      $ 0'
+  ]));
+  assert.equal(filas.length, 4);
+  const cimientos = filas.find(f => f.item === 'Cimientos');
+  assert.equal(cimientos.enCero, true);
+  const comunes = filas.find(f => f.item.startsWith('Áreas e inmuebles'));
+  assert.equal(comunes.enCero, false);
+  assert.equal(comunes.monto, '$ 15.000.000.000');
+});
+
+test('extraerValoresPorItem no se confunde con la fila-etiqueta "valores asegurados"', () => {
+  const filas = extraerValoresPorItem(enPagina(9, ['COBERTURA   VALORES ASEGURADOS']));
+  assert.equal(filas.length, 0);
+});
+
+/* ============================================================
+   Punto 4: el código del clausulado va en prosa después de la frase
+   "REGISTRO CONDICIONADO GENERAL", no en el pie de página — y el PDF
+   parte ese párrafo en varias líneas al ajustarlo al ancho de la hoja.
+   ============================================================ */
+test('buscarCodigoClausulado encuentra el código en prosa, partido en varias líneas', () => {
+  const r = buscarCodigoClausulado(enPagina(22, [
+    'Clausulado   PÓLIZA DE TODO RIESGO PARA COPROPIEDADES. A este producto de',
+    'seguro le serán aplicables los términos y condiciones del',
+    'condicionado general Código REGISTRO CONDICIONADO GENERAL',
+    '00000000-0000-P-00-PRODUCTOXXX-D00I y que ha sido previamente',
+    'depositado en la Superintendencia Financiera de Colombia'
+  ]));
+  assert.ok(r);
+  assert.equal(r.codigo, '00000000-0000-P-00-PRODUCTOXXX-D00I');
+  assert.equal(r.pagina, 22);
+});
+
+test('buscarCodigoClausulado cae al patrón de línea corta si no hay prosa con REGISTRO CONDICIONADO GENERAL', () => {
+  const r = buscarCodigoClausulado(enPagina(8, ['Código de clausulado depositado: CGP-2024-0451']));
+  assert.ok(r);
+  assert.equal(r.codigo, 'CGP-2024-0451');
+});
+
+/* ============================================================
+   Punto 5: las condiciones particulares pueden modificar los plazos de
+   ley — si esta póliza amplió el plazo de aviso, el informe debe mostrar
+   el plazo real, no el de la ley por defecto.
+   ============================================================ */
+test('buscarPlazoAviso encuentra el plazo modificado en condiciones particulares', () => {
+  const r = buscarPlazoAviso(enPagina(3, [
+    '3. Con la finalidad de ofrecer mayor comodidad a nuestros clientes, el plazo',
+    'de aviso del siniestro se amplía a 15 días.'
+  ]));
+  assert.ok(r);
+  assert.equal(r.dias, '15');
+});
+
+test('buscarAnticipoIndemnizacion detecta la mención sin inventar una cifra', () => {
+  const r = buscarAnticipoIndemnizacion(enPagina(3, [
+    'El asegurado podrá solicitar por escrito un anticipo de indemnización',
+    'antes de que se formalice la reclamación.'
+  ]));
+  assert.ok(r);
+  assert.equal(r.pagina, 3);
+  assert.equal(buscarAnticipoIndemnizacion(enPagina(1, ['nada relacionado aquí'])), null);
+});
+
+/* ============================================================
+   Punto 6: demérito por uso cambia lo que te pagan a partir de cierta
+   antigüedad — el umbral (ej. 70%) es el dato que hay que mostrar.
+   ============================================================ */
+test('buscarDemeritoPorUso extrae el umbral cuando está en el mismo bloque', () => {
+  const r = buscarDemeritoPorUso(enPagina(11, [
+    '9. Demérito por Uso (Aplica para Copropiedades a partir de los 10 años de',
+    'construcción): Se aplicará demérito por uso a las Pérdidas Totales',
+    'cuando la reparación o reposición supere el 70% del valor a nuevo del bien',
+    'siniestrado, la Compañía pagará la indemnización por su valor real.'
+  ]));
+  assert.ok(r);
+  assert.equal(r.umbralPct, '70');
+});
+
+test('buscarDemeritoPorUso avisa la cláusula aunque no encuentre el umbral', () => {
+  const r = buscarDemeritoPorUso(enPagina(11, ['9. Demérito por Uso: se aplicará según tabla anexa.']));
+  assert.ok(r, 'debe avisar que existe la cláusula, aunque no pueda dar el número');
+  assert.equal(r.umbralPct, null);
+});
+
+/* ============================================================
+   Punto 7: coaseguro — dos compañías responden por porcentaje.
+   ============================================================ */
+test('extraerCoaseguro lee las filas de aseguradoras con su porcentaje', () => {
+  const filas = extraerCoaseguro(enPagina(2, [
+    'Asegurador   COMPAÑÍA A (Líder) - 10%',
+    'Asegurador   COMPAÑÍA B - 90%'
+  ]));
+  assert.equal(filas.length, 2);
+  assert.equal(filas[0].pct, '10');
+  assert.equal(filas[0].lider, true);
+  assert.equal(filas[1].pct, '90');
+  assert.equal(filas[1].lider, false);
+});
+
+/* ============================================================
+   Punto 8: problemas de extracción de texto.
+   ============================================================ */
+test('paginaLegible descarta una página con la fuente mal codificada', () => {
+  // "8VWHG FXHQWD FRQ" es lo que devuelve el extractor cuando el PDF dice
+  // "Usted cuenta con", con una fuente sin tabla de caracteres correcta.
+  assert.equal(paginaLegible('8VWHG FXHQWD FRQ HVWD S OL]D GH WRGR ULHVJR'), false);
+  assert.equal(paginaLegible('Usted cuenta con esta póliza de todo riesgo para copropiedades'), true);
+});
+
+test('paginaLegible no descarta una página con poco texto para juzgar', () => {
+  assert.equal(paginaLegible('Pág. 4'), true);
+});
+
+test('limpiarNotaAlPie quita el dígito pegado al nombre o al signo de pesos, sin tocar el monto', () => {
+  assert.equal(
+    limpiarNotaAlPie('Amparo básico todo riesgo daño material1 $ 28.000.000.000'),
+    'Amparo básico todo riesgo daño material $ 28.000.000.000'
+  );
+  assert.equal(
+    limpiarNotaAlPie('Manejo e infidelidad de empleados3$ 20.000.000'),
+    'Manejo e infidelidad de empleados$ 20.000.000'
+  );
+  assert.equal(
+    limpiarNotaAlPie('Equipos eléctricos y electrónicos2 $ 100.000.000'),
+    'Equipos eléctricos y electrónicos $ 100.000.000'
+  );
+});
+
+test('buscarVigencia lee "Fecha inicio vigencia" / "Fecha fin vigencia" en la misma línea', () => {
+  const r = buscarVigencia(enPagina(1, [
+    'Fecha inicio vigencia 15/02/2026 desde las 16 HH Fecha fin vigencia 15/02/2027 hasta las 16 HH'
+  ]));
+  assert.ok(r);
+  assert.equal(r.desde, '15/02/2026');
+  assert.equal(r.hasta, '15/02/2027');
+});
+
+test('buscarVigencia no se confunde si una fecha ajena aparece antes de las etiquetadas', () => {
+  const r = buscarVigencia(enPagina(1, [
+    'Vigencia Fecha de expedición 01/01/2026 Fecha inicio vigencia 15/02/2026 Fecha fin vigencia 15/02/2027'
+  ]));
+  assert.ok(r);
+  assert.equal(r.desde, '15/02/2026');
+  assert.equal(r.hasta, '15/02/2027');
+});
+
+/* ============================================================
+   Huella de extracción — la regla es "cero datos del cliente", sin
+   excepciones. Estas pruebas envenenan a propósito las líneas con datos
+   personales falsos (nombre, cédula, NIT, teléfono, correo, dirección,
+   número de póliza) mezclados con líneas técnicas reales, y verifican que
+   nada de eso sobreviva en el texto final.
+   ============================================================ */
+
+test('pareceContenerPII detecta las etiquetas de datos personales', () => {
+  const conPII = [
+    'NIT 900.123.456-7',
+    'Cédula: 12.345.678',
+    'Correo: cliente@ejemplo.com',
+    'Teléfono: 3001234567',
+    'Dirección: Calle 1 # 2-3, Bogotá',
+    'Tomador: Juan Pérez Gómez',
+    'Póliza No. 445566',
+    'Intermediario: Asesor de Seguros S.A.S.'
+  ];
+  for (const t of conPII) assert.equal(pareceContenerPII(t), true, `debería marcar PII: "${t}"`);
+
+  assert.equal(pareceContenerPII('Deducible terremoto: 2% del valor asegurable, mínimo 3 SMMLV'), false);
+});
+
+test('enmascararLinea oculta montos en pesos y números largos, conserva % y SMMLV/SMDLV', () => {
+  assert.equal(
+    enmascararLinea('Valor asegurado: $2.000.000.000'),
+    'Valor asegurado: $ #.###.###'
+  );
+  assert.equal(
+    enmascararLinea('Deducible terremoto: 2% del valor asegurable, mínimo 15 SMDLV'),
+    'Deducible terremoto: 2% del valor asegurable, mínimo 15 SMDLV'
+  );
+  // Un número de 3+ dígitos que NO es porcentaje ni SMMLV/SMDLV: podría ser
+  // un NIT, una cédula o un número de póliza — se oculta siempre.
+  assert.equal(
+    enmascararLinea('Referencia interna 445566 del expediente'),
+    'Referencia interna [número oculto] del expediente'
+  );
+  // Un porcentaje de tres dígitos (cobertura al 100%) sí se conserva.
+  assert.equal(
+    enmascararLinea('Cobertura al 100% del valor'),
+    'Cobertura al 100% del valor'
+  );
+});
+
+test('lineasClaveParaHuella descarta cualquier línea con pinta de dato personal, aunque tenga palabra clave', () => {
+  const lineas = enPagina(4, [
+    'Tomador: Juan Pérez Gómez, deducible terremoto a su cargo',
+    'Deducible terremoto: 2% del valor asegurable, mínimo 3 SMMLV',
+    'Texto irrelevante sin ninguna palabra clave'
+  ]);
+  const claves = lineasClaveParaHuella(lineas);
+  assert.equal(claves.length, 1);
+  assert.ok(!claves[0].texto.includes('Juan Pérez'));
+  assert.ok(claves[0].texto.includes('SMMLV'));
+});
+
+test('lineasClaveParaHuella no repite la misma línea y respeta el límite', () => {
+  const repetidas = enPagina(1, Array(5).fill('Deducible terremoto: 2% mínimo 3 SMMLV'));
+  assert.equal(lineasClaveParaHuella(repetidas).length, 1);
+
+  const muchas = [];
+  for (let i = 0; i < 80; i++) muchas.push({ pagina: 1, linea: i + 1, texto: `Deducible amparo ${i}: 2% mínimo 3 SMMLV` });
+  assert.ok(lineasClaveParaHuella(muchas).length <= 60, 'la huella debe quedarse en "unos pocos kilobytes"');
+});
+
+test('encabezadosDeTabla reconoce etiquetas de columna, no confunde una oración normal', () => {
+  const lineas = enPagina(1, ['COBERTURA DEDUCIBLE', 'Terremoto 1% del valor asegurable del ítem afectado']);
+  const enc = encabezadosDeTabla(lineas);
+  assert.equal(enc.length, 1);
+  assert.equal(enc[0].texto, 'COBERTURA DEDUCIBLE');
+});
+
+/* Objeto base con la forma que devuelve leerPdf(), para probar
+   estadoCampos()/generarHuella() sin necesitar pdf.js. */
+const rBase = () => ({
+  paginas: 3, paginasSalteadas: [], lineas: [],
+  candidatos: [], definiciones: [], exclusiones: null,
+  tablaDeducibles: [], valoresPorItem: [], coaseguro: [],
+  plazoAviso: null, anticipo: null, demeritoPorUso: null
+});
+
+test('estadoCampos marca PARCIAL cuando hay una cláusula pero falta el número, y NO ENCONTRADO cuando no hay nada', () => {
+  const r = rBase();
+  r.demeritoPorUso = { pagina: 5, linea: 1, umbralPct: null, texto: 'texto' };
+  r.definiciones = [{ termino: 'Valor real', pagina: 1, linea: 1, contexto: 'x' }];
+  const estados = Object.fromEntries(estadoCampos(r));
+  assert.equal(estados['Demérito por uso'], 'PARCIAL (sin umbral)');
+  assert.ok(estados['Definiciones clave'].startsWith('PARCIAL'));
+  assert.equal(estados['Vigencia'], 'NO ENCONTRADO');
+});
+
+test('estadoCampos cuenta el deducible de terremoto como encontrado si solo apareció en la tabla por amparo', () => {
+  const r = rBase();
+  r.tablaDeducibles = [{ amparo: 'Terremoto', base: 'valorAsegurable', pct: '1', smmlv: null, smdlv: null, sinDeducible: false, pagina: 1, linea: 1, texto: 'x' }];
+  const estados = Object.fromEntries(estadoCampos(r));
+  assert.equal(estados['Deducible de terremoto'], 'OK');
+});
+
+test('generarHuella nunca incluye nombres, identificaciones, contacto ni cifras en pesos, aunque estén en el documento', () => {
+  const r = rBase();
+  r.lineas = enPagina(1, [
+    'Tomador: María Fernanda Rodríguez López',
+    'NIT 900.123.456-7',
+    'Cédula: 79.845.123',
+    'Correo: maria.rodriguez@correo-personal.com',
+    'Teléfono: 3109876543',
+    'Dirección: Carrera 45 # 12-34, Medellín',
+    'Póliza No. 998877',
+    'Deducible terremoto: 2% del valor asegurable, mínimo 3 SMMLV',
+    'Valor asegurado: $2.000.000.000',
+    'COBERTURA DEDUCIBLE'
+  ]);
+  r.candidatos = [{ campo: 'Deducible de terremoto', pct: '2', smmlv: '3', smdlv: null, pagina: 1, linea: 8, texto: r.lineas[7].texto }];
+
+  const huella = generarHuella(r);
+
+  const prohibido = [
+    'María', 'Fernanda', 'Rodríguez', 'López',
+    '900.123.456', '79.845.123', '3109876543',
+    'maria.rodriguez@correo-personal.com',
+    'Carrera 45', 'Medellín', '998877',
+    '2.000.000.000', '$2.000.000.000'
+  ];
+  for (const p of prohibido) {
+    assert.ok(!huella.includes(p), `la huella no debería contener "${p}"`);
+  }
+  // Lo estructural sí debe sobrevivir: es lo que sirve para diagnosticar.
+  assert.ok(huella.includes('SMMLV'));
+  assert.ok(huella.includes('2%'));
+  assert.ok(huella.includes('$ #.###.###'));
+  assert.ok(huella.includes('COBERTURA DEDUCIBLE'));
+  assert.ok(huella.includes('Deducible de terremoto: OK'));
 });
