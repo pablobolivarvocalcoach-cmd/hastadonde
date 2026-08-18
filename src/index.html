@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hasta Dónde — Radiografía de pólizas · Colombia</title>
+<meta name="description" content="Herramienta abierta y gratuita para entender hasta dónde llega tu póliza: deducibles, infraseguro y coberturas en lenguaje claro. Copropiedades, PYME, autos y hogar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--@css-->
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="marca">Hasta<em>Dónde</em></div>
+    <div class="alerta mono">Sismo 10 ago 2026 · M 7,4</div>
+      <div class="asesor-top" id="asesorTop"></div>
+    <nav class="navlinks">
+      <a href="#deducible">Deducibles</a>
+      <a href="#diagnostico">Diagnóstico</a>
+      <a href="#biblioteca">Clausulados</a>
+      <a href="#glosario">Glosario</a>
+      <a href="#plazos">Plazos</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Herramienta abierta · Colombia · Copropiedades, PYME, autos y hogar</span>
+    <h1>¿Hasta dónde llega tu póliza<span class="q">?</span></h1>
+    <p class="lede">Nadie lee 40 páginas de clausulado. Responde 6 preguntas y te mostramos, con números, cuánto te pagarían de verdad, cuánto se lleva el deducible y qué preguntas hacerle hoy a tu asesor.</p>
+    <div class="cta-row">
+      <a class="btn verde" href="#diagnostico">Revisar mi póliza <span aria-hidden="true">→</span></a>
+      <a class="btn ghost" href="#deducible">Primero: entender el deducible</a>
+    </div>
+
+    <div class="cinta-caja">
+      <div class="cinta-top">
+        <div>
+          <span class="rot">La cinta del dinero — ejemplo real</span>
+          <div class="mono" style="font-size:15px;margin-top:4px" id="heroTitulo">Pérdida por sismo: $80.000.000</div>
+        </div>
+        <div class="mono" style="font-size:13px;color:var(--tinta2)" id="heroSub">Edificio asegurado en $2.000 millones · deducible 2% del valor asegurado</div>
+      </div>
+      <div class="regla" id="heroRegla" aria-hidden="true"></div>
+      <div class="cinta" id="heroCinta" role="img" aria-label="Reparto de la pérdida entre deducible y lo que recibe el asegurado">
+        <div class="seg d" style="width:50%"><span>Deducible</span></div>
+        <div class="seg r" style="width:50%"><span>Recibes</span></div>
+      </div>
+      <div class="leyenda">
+        <b><i class="dot d"></i> Se lo lleva el deducible</b>
+        <b><i class="dot i"></i> Se pierde por infraseguro</b>
+        <b><i class="dot r"></i> Llega a tu bolsillo</b>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEDUCIBLE -->
+<section id="deducible">
+  <div class="wrap">
+    <span class="eyebrow">El malentendido #1 · muévelo y verás</span>
+    <h2 style="font-size:clamp(28px,5vw,46px);max-width:20ch">El deducible casi nunca se calcula sobre lo que perdiste.</h2>
+    <p class="lede" style="margin-top:16px">En terremoto, la mayoría de pólizas colombianas calculan el deducible sobre el <b>valor asegurado del bien afectado</b>, no sobre el daño. Es la diferencia entre recibir plata y no recibir nada.</p>
+
+    <div class="controlitos">
+      <div class="controlito">
+        <label for="sVal">Valor asegurado del edificio</label>
+        <input type="range" id="sVal" min="200" max="8000" step="100" value="2000">
+        <div class="valorito" id="sValTxt">$2.000.000.000</div>
+      </div>
+      <div class="controlito">
+        <label for="sPer">Pérdida por el sismo</label>
+        <input type="range" id="sPer" min="5" max="600" step="5" value="80">
+        <div class="valorito" id="sPerTxt">$80.000.000</div>
+      </div>
+      <div class="controlito">
+        <label for="sDed">Deducible pactado</label>
+        <input type="range" id="sDed" min="0.5" max="10" step="0.25" value="2">
+        <div class="valorito" id="sDedTxt">2%</div>
+      </div>
+    </div>
+
+    <div class="susto">
+      <div class="creias">
+        <span class="eyebrow">Lo que casi todos creen</span>
+        <div class="num" id="sCreias">$78.400.000</div>
+        <small>Deducible del 2% <b>sobre la pérdida</b>. Suena razonable, pero casi nunca es así en el amparo de terremoto.</small>
+      </div>
+      <div class="real">
+        <span class="eyebrow">Lo que dice el clausulado</span>
+        <div class="num" id="sReal">$40.000.000</div>
+        <small>Deducible del 2% <b>sobre el valor asegurado</b> ($2.000M = $40M), con un mínimo en salarios mínimos. Si el daño es menor al deducible, la indemnización es cero.</small>
+      </div>
+    </div>
+    <p class="mono" style="font-size:13px;color:var(--tinta2);margin-top:14px" id="sMinimo">Mínimo habitual del amparo: no menos de X SMMLV.</p>
+  </div>
+</section>
+
+<!-- DIAGNÓSTICO -->
+<section id="diagnostico">
+  <div class="wrap">
+    <span class="eyebrow">Diagnóstico guiado · 6 preguntas · 3 minutos</span>
+    <h2 style="font-size:clamp(28px,5vw,46px);margin-bottom:24px">Tu radiografía</h2>
+    <div class="wiz" id="wiz">
+      <div class="pasos" id="pasos"></div>
+      <div id="cuerpoPaso"></div>
+      <div class="wiz-nav" id="wizNav"></div>
+    </div>
+
+    <div class="res" id="res"></div>
+  </div>
+</section>
+
+<!-- BIBLIOTECA -->
+<section id="biblioteca">
+  <div class="wrap">
+    <span class="eyebrow">Datos abiertos · esta tabla es de todos</span>
+    <h2 style="font-size:clamp(28px,5vw,46px);max-width:22ch">Biblioteca de clausulados</h2>
+    <p class="lede" style="margin-top:16px">Cada póliza tiene un código de clausulado registrado. Aquí los vamos guardando con su deducible de terremoto ya traducido. Agrega el tuyo y exporta el archivo para que quede en la página.</p>
+    <div class="cta-row no-print">
+      <button class="btn ghost" id="btnAddClaus">+ Agregar un clausulado</button>
+      <button class="btn ghost" id="btnExport">Exportar JSON</button>
+      <label class="btn ghost" style="cursor:pointer">Importar JSON<input type="file" id="fileImport" accept=".json" class="oculto"></label>
+    </div>
+    <div class="tabla-scroll">
+      <table class="tabla" id="tablaClaus"></table>
+    </div>
+    <p class="mono" style="font-size:12.5px;color:var(--tinta2);margin-top:14px">Los valores marcados <span class="chip">referencia de mercado</span> son rangos típicos, no el dato de tu póliza. Solo el clausulado firmado manda.</p>
+  </div>
+</section>
+
+<!-- GLOSARIO -->
+<section id="glosario">
+  <div class="wrap">
+    <span class="eyebrow">Traductor · de póliza a español</span>
+    <h2 style="font-size:clamp(28px,5vw,46px);margin-bottom:20px">Glosario en cristiano</h2>
+    <input class="buscador" id="buscaTermino" placeholder="Busca: deducible, infraseguro, lucro cesante, salvamento…" aria-label="Buscar término">
+    <div id="listaGlosario"></div>
+  </div>
+</section>
+
+<!-- PLAZOS -->
+<section id="plazos">
+  <div class="wrap">
+    <span class="eyebrow">Reloj corriendo · Código de Comercio</span>
+    <h2 style="font-size:clamp(28px,5vw,46px);margin-bottom:26px">Tus plazos, en orden</h2>
+    <div class="linea-t" id="lineaPlazos"></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="marca">Hasta<em style="color:#7FD3BE;font-style:normal">Dónde</em></span>
+    <p>Herramienta educativa y abierta, hecha en Colombia tras el sismo del 10 de agosto de 2026. Un archivo, sin servidor, sin cuentas, sin cookies. Descárgala, cámbiala, compártela.</p>
+    <div class="legal">
+      <b>Esto no es asesoría legal ni de seguros.</b> Los cálculos son estimaciones educativas basadas en las condiciones que tú ingresas. La única fuente válida es tu clausulado y la carátula de tu póliza. Las decisiones sobre una reclamación deben tomarse con tu asesor, tu aseguradora o un abogado. Si tu aseguradora objeta, puedes acudir al Defensor del Consumidor Financiero de la entidad y a la Superintendencia Financiera de Colombia.
+    </div>
+  </div>
+</footer>
+
+<script type="module">
+<!--@js-->
+</script>
+</body>
+</html>

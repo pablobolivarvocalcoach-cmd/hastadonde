@@ -1,0 +1,13 @@
+{
+  "name": "hasta-donde",
+  "version": "0.2.0",
+  "description": "Herramienta abierta para entender pólizas en Colombia: deducibles, infraseguro y coberturas en lenguaje claro.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "check": "npm test && npm run build",
+    "serve": "npm run build && node --eval \"import('node:http').then(h=>h.createServer((q,s)=>s.end(require('fs').readFileSync('dist/hasta-donde.html'))).listen(8080,()=>console.log('http://localhost:8080')))\""
+  }
+}
