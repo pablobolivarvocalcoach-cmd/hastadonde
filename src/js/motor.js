@@ -3,7 +3,7 @@
    1) regla proporcional por infraseguro  2) deducible  3) tope
    Hasta Dónde — https://github.com/  ·  licencia MIT  */
 
-import { CONFIG } from './config.js';
+import { CONFIG, RANGO_DEDUCIBLE } from './config.js';
 
 function calcular(d) {
   const P  = Math.max(0, +d.perdida || 0);
@@ -44,4 +44,16 @@ function calcular(d) {
   };
 }
 
-export { calcular };
+/* Cuando no se conoce el deducible, se devuelven los dos extremos del
+   mercado. `optimista` es el mejor caso posible, `pesimista` el peor.
+   Mostrar solo uno de los dos sería inventar precisión. */
+function calcularRango(d, ramo) {
+  const r = RANGO_DEDUCIBLE[ramo] || RANGO_DEDUCIBLE.hogar;
+  const con = e => calcular({ ...d, dedPct: e.pct, dedMinSMMLV: e.smmlv });
+  const a = con(r.min), b = con(r.max);
+  const optimista = a.indemnizacion >= b.indemnizacion ? a : b;
+  const pesimista = a.indemnizacion >= b.indemnizacion ? b : a;
+  return { optimista, pesimista, rango: r, esRango: true };
+}
+
+export { calcular, calcularRango };

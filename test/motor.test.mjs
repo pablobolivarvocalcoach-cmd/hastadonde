@@ -86,3 +86,30 @@ test('entradas basura no rompen el motor', () => {
     assert.ok(Number.isFinite(r.indemnizacion) && r.indemnizacion >= 0);
   }
 });
+
+/* --- Rangos: cuando falta el deducible, nunca se inventa una cifra --- */
+import { calcularRango } from '../src/js/motor.js';
+import { RANGO_DEDUCIBLE } from '../src/js/config.js';
+
+test('el rango cubre los cuatro ramos y siempre ordena peor y mejor caso', () => {
+  const d = { perdida:80e6, valorAsegurado:2000e6, valorReal:2000e6, baseDeducible:'valorAsegurado' };
+  for (const ramo of Object.keys(RANGO_DEDUCIBLE)) {
+    const rg = calcularRango(d, ramo);
+    assert.ok(rg.optimista.indemnizacion >= rg.pesimista.indemnizacion,
+      `en ${ramo} el mejor caso quedó por debajo del peor`);
+    assert.ok(rg.esRango);
+  }
+});
+
+test('el peor caso del rango nunca es más generoso que el deducible máximo real', () => {
+  const d = { perdida:200e6, valorAsegurado:1000e6, valorReal:1000e6, baseDeducible:'valorAsegurado' };
+  const rg = calcularRango(d, 'ph');
+  const max = RANGO_DEDUCIBLE.ph.max;
+  const directo = calcular({ ...d, dedPct:max.pct, dedMinSMMLV:max.smmlv });
+  assert.equal(rg.pesimista.indemnizacion, directo.indemnizacion);
+});
+
+test('un ramo desconocido no rompe el rango', () => {
+  const rg = calcularRango({ perdida:10e6, valorAsegurado:100e6, valorReal:100e6 }, 'inexistente');
+  assert.ok(Number.isFinite(rg.pesimista.indemnizacion));
+});

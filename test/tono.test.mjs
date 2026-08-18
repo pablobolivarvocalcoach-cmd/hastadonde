@@ -35,3 +35,17 @@ test('la configuración del asesor está completa y es editable', () => {
   for (const ramo of ['comun', 'ph', 'pyme', 'auto', 'hogar'])
     assert.ok(new RegExp(`\\b${ramo}: \\[`).test(a), `falta la lista de documentos de ${ramo}`);
 });
+
+test('el resultado nunca desincentiva reportar el siniestro', () => {
+  const ui = archivos.find(([n]) => n === 'ui')[1];
+  assert.ok(/Repórtalo de todas formas/.test(ui),
+    'falta el mensaje que empuja a reportar cuando la indemnización da cero');
+  assert.ok(!/la póliza no pagaría nada/.test(ui),
+    'un titular que suena a veredicto puede hacer que alguien no reclame');
+});
+
+test('sin el deducible, la herramienta muestra rango y no una cifra única', () => {
+  const ui = archivos.find(([n]) => n === 'ui')[1];
+  for (const pieza of ['dedConocido', 'calcularRango', 'esta no es tu cifra'])
+    assert.ok(ui.includes(pieza), `falta ${pieza}: se estaría inventando precisión`);
+});
