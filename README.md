@@ -29,14 +29,19 @@ embebida dentro del único archivo HTML; nadie que use la página instala nada.
 ## Lector de PDF (prototipo)
 
 Puedes subir el PDF de tu póliza y la herramienta te muestra qué encontró
-— deducible de terremoto, vigencia, valor asegurado, código de clausulado
-— con la página y la línea exacta para que lo verifiques. También busca
-fragmentos del clausulado (exclusiones, definiciones clave como "pérdida
-total" o "regla proporcional"), siempre marcados como candidato a revisar,
-nunca como el texto completo verificado. El PDF se lee entero en tu
-navegador con [pdf.js](https://mozilla.github.io/pdf.js/): nunca se sube a
-ningún servidor ni se guarda. Solo funciona con PDF de texto (no fotos ni
-escaneos), y si un dato no se puede leer con confianza, la herramienta lo
+— vigencia, valor asegurado por ítem, código de clausulado, coaseguro, y
+la tabla completa de deducibles por amparo (no existe "el deducible" de
+una póliza: cada amparo puede calcular sobre una base distinta, y esta
+tabla lo muestra) — con la página exacta para que lo verifiques. También
+busca fragmentos del clausulado (exclusiones, definiciones clave como
+"pérdida total" o "regla proporcional", plazos modificados, demérito por
+uso), siempre marcados como candidato a revisar, nunca como el texto
+completo verificado. Si el texto de una página sale mal decodificado, esa
+página se descarta en vez de tratarse como contenido. El PDF se lee entero
+en tu navegador con [pdf.js](https://mozilla.github.io/pdf.js/): nunca se
+sube a ningún servidor ni se guarda. Solo funciona con PDF de texto (no
+fotos ni escaneos), y si un dato no se puede leer con confianza, la
+herramienta lo
 dice en vez de inventarlo. Es una primera versión: todavía no llena el
 cuestionario por ti ni reemplaza la entrada principal de la página.
 

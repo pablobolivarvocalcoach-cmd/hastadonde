@@ -36,9 +36,13 @@ function pintarCinta(elCinta, elRegla, r) {
 }
 
 (function heroDemo(){
-  const r = calcular({ perdida:80e6, valorAsegurado:2000e6, valorReal:2000e6,
+  // Pérdida distinta al deducible a propósito: con $80M ambas cifras daban
+  // $40M y, leídas rápido, parecían el mismo número repetido por error.
+  const perdida = 90e6;
+  const r = calcular({ perdida, valorAsegurado:2000e6, valorReal:2000e6,
                        baseDeducible:'valorAsegurado', dedPct:2, dedMinSMMLV:3 });
   pintarCinta(document.getElementById('heroCinta'), document.getElementById('heroRegla'), r);
+  document.getElementById('heroTitulo').textContent = `Pérdida por sismo: ${cop(perdida)}`;
   document.getElementById('heroSub').textContent =
     `Edificio asegurado en $2.000 M · deducible 2% del valor asegurado · recibes ${cop(r.indemnizacion)}`;
 })();
@@ -54,12 +58,17 @@ function pintarCinta(elCinta, elRegla, r) {
     document.getElementById('sPerTxt').textContent = cop(P);
     document.getElementById('sDedTxt').textContent = pct.toString().replace('.',',') + '%';
 
+    const pctTxt = pct.toString().replace('.',',');
     const creido = Math.max(0, P - P*pct/100);
     const rReal  = calcular({perdida:P, valorAsegurado:VA, valorReal:VA, baseDeducible:'valorAsegurado', dedPct:pct, dedMinSMMLV:3});
 
     document.getElementById('sCreias').textContent = cop(creido);
+    document.getElementById('sCreiasTxt').innerHTML =
+      `Deducible del ${pctTxt}% <b>sobre la pérdida</b> (${copCorto(P)}). Suena razonable, pero casi nunca es así en el amparo de terremoto.`;
     const el = document.getElementById('sReal');
     el.textContent = cop(rReal.indemnizacion);
+    document.getElementById('sRealTxt').innerHTML =
+      `Deducible del ${pctTxt}% <b>sobre el valor asegurado</b> (${copCorto(VA)} = ${copCorto(rReal.deducibleTeorico)}), con un mínimo en salarios mínimos si aplica. Si el daño es menor al deducible, la indemnización es cero.`;
     document.getElementById('sMinimo').textContent = rReal.indemnizacion === 0
       ? `Con estos números la indemnización es CERO: el deducible (${cop(rReal.deducibleTeorico)}) se come toda la pérdida. Diferencia con lo que creías: ${cop(creido)}.`
       : `Deducible real: ${cop(rReal.deducibleTeorico)}${rReal.mandaMinimo?' (manda el mínimo de 3 SMMLV)':''}. Diferencia con lo que creías: ${cop(creido - rReal.indemnizacion)} menos en tu bolsillo.`;
@@ -458,13 +467,29 @@ $('lineaPlazos').innerHTML = PLAZOS.map(([p,t,x])=>`
 const CAMPOS_BUSCADOS = ['Deducible de terremoto', 'Vigencia', 'Valor asegurado', 'Código de clausulado'];
 let leyendoPdf = false;
 
+/* El deducible de terremoto muestra SMMLV (mensual) y SMDLV (diario) como
+   campos separados y rotulados — nunca uno convertido en el otro. 15 SMDLV
+   es medio salario mensual, no quince: confundirlos multiplica el
+   deducible por ~30. Ver LECTOR-PATRONES.md, punto 0. */
 function textoCandidato(c) {
-  if (c.campo === 'Deducible de terremoto')
-    return [c.pct ? `${c.pct}%` : null, c.smmlv ? `mínimo ${c.smmlv} SMMLV` : null].filter(Boolean).join(' · ');
+  if (c.campo === 'Deducible de terremoto') {
+    const partes = [c.pct ? `${c.pct}%` : null];
+    if (c.smmlv) partes.push(`mínimo ${c.smmlv} SMMLV (mensual)`);
+    if (c.smdlv) partes.push(`mínimo ${c.smdlv} SMDLV (diario — no es lo mismo que SMMLV)`);
+    if (!c.smmlv && !c.smdlv) partes.push('sin mínimo pactado');
+    return partes.filter(Boolean).join(' · ');
+  }
   if (c.campo === 'Vigencia') return `${c.desde} a ${c.hasta}`;
   if (c.campo === 'Valor asegurado') return c.monto;
   if (c.campo === 'Código de clausulado') return c.codigo;
   return '';
+}
+
+function textoFilaDeducible(f) {
+  if (f.sinDeducible) return 'Sin deducible';
+  const base = f.base === 'perdida' ? 'de la pérdida' : f.base === 'valorAsegurable' ? 'del valor asegurable' : 'base sin identificar';
+  const unidad = f.smmlv ? `, mínimo ${f.smmlv} SMMLV (mensual)` : f.smdlv ? `, mínimo ${f.smdlv} SMDLV (diario)` : '';
+  return `${f.pct}% ${base}${unidad}`;
 }
 
 function pintarLector(r) {
@@ -476,12 +501,66 @@ function pintarLector(r) {
     return;
   }
 
-  est.innerHTML = r.dudoso ? `<div class="aviso" style="background:var(--fuera-luz);border-color:var(--fuera)">
+  // El aviso de calidad va SIEMPRE arriba de todo, antes de cualquier
+  // cifra — no solo al lado de cada dato. Si la calidad es muy baja,
+  // ofrecemos el cuestionario manual en vez de un informe construido
+  // sobre texto que probablemente esté mal leído.
+  const salteo = r.paginasSalteadas.length
+    ? `<p style="color:var(--tinta2);margin-top:8px">Saltamos ${r.paginasSalteadas.length === 1 ? 'la página' : 'las páginas'} ${r.paginasSalteadas.join(', ')} porque el texto salió ilegible (probablemente una fuente sin tabla de caracteres) — no la tratamos como contenido.</p>`
+    : '';
+
+  if (r.muyDudoso) {
+    est.innerHTML = `<div class="aviso" style="background:var(--fuera-luz);border-color:var(--fuera)">
+        <b>No confíes en lo que sigue.</b> El texto de este PDF salió mal decodificado en gran parte — lo más seguro es que varios datos estén mal leídos, no solo mal formateados. Mejor usa el <a href="#diagnostico">cuestionario manual</a> con la carátula a la vista.
+      </div>${salteo}`;
+    res.innerHTML = '';
+    return;
+  }
+
+  est.innerHTML = (r.dudoso ? `<div class="aviso" style="background:var(--fuera-luz);border-color:var(--fuera)">
       <b>El texto de este PDF salió raro.</b> Puede tener una fuente que no decodificamos bien. Revisa con cuidado lo que sigue: si algo se ve corrupto, no lo copies, y usa mejor el PDF que te mande la aseguradora en otro formato si tienes uno.
-    </div>` : `<p style="color:var(--tinta2)">Leímos ${r.paginas} página${r.paginas===1?'':'s'}. Esto es lo que encontramos — verifícalo contra tu PDF antes de usarlo.</p>`;
+    </div>` : `<p style="color:var(--tinta2)">Leímos ${r.paginas} página${r.paginas===1?'':'s'}. Esto es lo que encontramos — verifícalo contra tu PDF antes de usarlo.</p>`) + salteo;
 
   const encontrados = r.candidatos.map(c => c.campo);
-  const faltantes = CAMPOS_BUSCADOS.filter(c => !encontrados.includes(c));
+  // Si la tabla de deducibles por amparo ya trae una fila de terremoto, no
+  // tiene sentido decir "no lo encontramos" arriba: sí se encontró, solo
+  // que por el camino de la tabla en vez del dato puntual. Mostrar las dos
+  // cosas contradictorias confunde más de lo que ayuda.
+  const terremotoEnTabla = r.tablaDeducibles.some(f => /terremoto|sismo|temblor/i.test(f.amparo));
+  const faltantes = CAMPOS_BUSCADOS.filter(c =>
+    !encontrados.includes(c) && !(c === 'Deducible de terremoto' && terremotoEnTabla));
+
+  const fragmentos = [
+    r.exclusiones ? `<div class="card">
+        <span class="chip">página ${r.exclusiones.pagina}</span>
+        <h3>Exclusiones (candidato)</h3>
+        <ul style="margin:8px 0 0 18px;color:var(--tinta2);font-size:13.5px">
+          ${r.exclusiones.items.map(t => `<li>${t}</li>`).join('')}
+        </ul>
+      </div>` : '',
+    ...r.definiciones.map(d => `<div class="card">
+        <span class="chip">página ${d.pagina}</span>
+        <h3>${d.termino}</h3>
+        <p class="mono" style="font-size:12.5px;color:var(--tinta2)">“${d.contexto}…”</p>
+      </div>`),
+    r.plazoAviso ? `<div class="card">
+        <span class="chip">página ${r.plazoAviso.pagina}</span>
+        <h3>Plazo de aviso modificado</h3>
+        <p><b>${r.plazoAviso.dias} días</b> — distinto a los 3 días de ley. Confirma que esta póliza sí lo amplió, léelo completo.</p>
+      </div>` : '',
+    r.anticipo ? `<div class="card">
+        <span class="chip">página ${r.anticipo.pagina}</span>
+        <h3>Menciona anticipo de indemnización</h3>
+        <p style="color:var(--tinta2)">Puede ser útil si necesitas plata antes de que se formalice la reclamación. Léelo completo para confirmar las condiciones.</p>
+      </div>` : '',
+    r.demeritoPorUso ? `<div class="card">
+        <span class="chip">página ${r.demeritoPorUso.pagina}</span>
+        <h3>Demérito por uso</h3>
+        <p style="color:var(--tinta2)">${r.demeritoPorUso.umbralPct
+          ? `A partir del <b>${r.demeritoPorUso.umbralPct}%</b> de costo de reparación, puede que te paguen a valor real y no a valor a nuevo. Léelo completo.`
+          : 'La póliza tiene una cláusula de demérito por uso — no logramos ubicar el porcentaje exacto. Léela completa.'}</p>
+      </div>` : ''
+  ].filter(Boolean);
 
   res.innerHTML = `
     <div class="grid g2" style="margin-top:14px">
@@ -498,26 +577,45 @@ function pintarLector(r) {
       </div>`).join('')}
     </div>
 
-    ${(r.definiciones.length || r.exclusiones) ? `
-    <h3 style="font-size:22px;margin:30px 0 8px">Fragmentos del clausulado que encontramos</h3>
-    <p style="font-size:14px;color:var(--tinta2);max-width:62ch">Esto no es la exclusión ni la definición completa, es dónde empieza — léela entera en tu PDF antes de sacar una conclusión.</p>
+    ${r.tablaDeducibles.length ? `
+    <h3 style="font-size:22px;margin:30px 0 8px">Deducibles por amparo</h3>
+    <p style="font-size:14px;color:var(--tinta2);max-width:62ch">No existe "el deducible" de una póliza: cada amparo puede calcular sobre una base distinta. Terremoto va destacado.</p>
+    <div class="tabla-scroll" style="margin-top:14px"><table class="tabla">
+      <thead><tr><th>Amparo</th><th>Deducible</th><th>Página</th></tr></thead>
+      <tbody>${r.tablaDeducibles.map(f => `<tr${/terremoto|sismo|temblor/i.test(f.amparo) ? ' style="background:var(--recibe-luz)"' : ''}>
+        <td>${f.amparo}</td><td>${textoFilaDeducible(f)}</td><td class="mono">${f.pagina}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>` : ''}
+
+    ${r.valoresPorItem.length ? `
+    <h3 style="font-size:22px;margin:30px 0 8px">Valor asegurado por ítem</h3>
+    <p style="font-size:14px;color:var(--tinta2);max-width:62ch">El deducible de terremoto se calcula sobre el ítem afectado, no sobre el total. Los ítems en $0 no tienen esa cobertura contratada.</p>
+    <div class="tabla-scroll" style="margin-top:14px"><table class="tabla">
+      <thead><tr><th>Ítem</th><th>Valor asegurado</th><th>Página</th></tr></thead>
+      <tbody>${r.valoresPorItem.map(it => `<tr${it.enCero ? ' style="background:var(--fuera-luz)"' : ''}>
+        <td>${it.item}</td><td>${it.enCero ? 'Sin cobertura ($0)' : it.monto}</td><td class="mono">${it.pagina}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>` : ''}
+
+    ${r.coaseguro.length ? `
+    <h3 style="font-size:22px;margin:30px 0 8px">Coaseguro</h3>
+    <p style="font-size:14px;color:var(--tinta2);max-width:62ch">Más de una aseguradora responde por esta póliza, cada una por su porcentaje.</p>
     <div class="grid g2" style="margin-top:14px">
-      ${r.exclusiones ? `<div class="card">
-        <span class="chip">página ${r.exclusiones.pagina}</span>
-        <h3>Exclusiones (candidato)</h3>
-        <ul style="margin:8px 0 0 18px;color:var(--tinta2);font-size:13.5px">
-          ${r.exclusiones.items.map(t => `<li>${t}</li>`).join('')}
-        </ul>
-      </div>` : ''}
-      ${r.definiciones.map(d => `<div class="card">
-        <span class="chip">página ${d.pagina}</span>
-        <h3>${d.termino}</h3>
-        <p class="mono" style="font-size:12.5px;color:var(--tinta2)">“${d.contexto}…”</p>
+      ${r.coaseguro.map(c => `<div class="card">
+        <span class="chip">página ${c.pagina}</span>
+        <h3>${c.nombre}${c.lider ? ' (líder)' : ''}</h3>
+        <p><b>${c.pct}%</b>${c.lider ? ' — administra el siniestro' : ''}</p>
       </div>`).join('')}
     </div>` : ''}
 
+    ${fragmentos.length ? `
+    <h3 style="font-size:22px;margin:30px 0 8px">Fragmentos del clausulado que encontramos</h3>
+    <p style="font-size:14px;color:var(--tinta2);max-width:62ch">Esto no es el texto completo de la cláusula, es dónde empieza — léela entera en tu PDF antes de sacar una conclusión.</p>
+    <div class="grid g2" style="margin-top:14px">${fragmentos.join('')}</div>` : ''}
+
     <details class="term" style="margin-top:20px"><summary>Ver todo el texto que se extrajo, página por página</summary>
       <div class="cuerpo">${Array.from({length:r.paginas}, (_,i)=>i+1).map(p => {
+        if (r.paginasSalteadas.includes(p)) return `<p class="mono" style="font-size:12px;color:var(--tinta2);margin-top:10px"><b>Página ${p}</b> — salteada, texto ilegible</p>`;
         const lineas = r.lineas.filter(l => l.pagina === p);
         return `<p class="mono" style="font-size:12px;color:var(--tinta2);margin-top:10px"><b>Página ${p}</b></p>
           ${lineas.map(l => `<p class="mono" style="font-size:12px">${l.linea}. ${l.texto}</p>`).join('')}`;
