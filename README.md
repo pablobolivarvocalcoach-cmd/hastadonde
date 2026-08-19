@@ -16,7 +16,7 @@ Nació después del sismo del 10 de agosto de 2026.
 
 ```bash
 npm install     # trae pdfjs-dist, solo para construir — la página no la necesita
-npm test        # motor, rangos, empaquetado, tono y lector de PDF
+npm test        # motor, escenarios, empaquetado, tono y lector de PDF
 npm run build   # → dist/hasta-donde.html y docs/index.html (copia idéntica, para GitHub Pages)
 npm run check   # ambas
 ```
@@ -61,12 +61,16 @@ de preguntas: cada duda frecuente se responde en pantalla y el botón de envío
 te manda un pre-diagnóstico estructurado por WhatsApp. Con `mostrar: false`
 la página queda genérica y sin marca.
 
-## Cómo aportar un clausulado
+## Cómo aportar un clausulado o un deducible observado
 
 No necesitas saber programar. Abre la página, ve a **Biblioteca de
-clausulados**, usa *Agregar un clausulado* con tu carátula a la vista, luego
-*Exportar JSON* y envía el archivo. Solo entra información leída de un
-clausulado real: los rangos típicos van marcados como referencia de mercado.
+clausulados**. Ahí hay dos tablas separadas a propósito: *Agregar un
+clausulado* es para condiciones generales (qué existe, qué verificar) y
+nunca lleva deducible — el deducible varía de póliza a póliza, incluso
+dentro de la misma aseguradora, así que ponerlo ahí lo haría ver como una
+regla del producto. Si tienes un deducible real a la vista en una carátula,
+va en *Agregar una observación*, con fecha: es el dato de esa póliza, no una
+promesa sobre la tuya. En los dos casos, *Exportar JSON* y envía el archivo.
 
 ## Esto no es asesoría
 

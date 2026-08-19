@@ -1,11 +1,13 @@
 /* CAPA DE PANTALLA — todo lo que toca el DOM vive aquí y solo aquí.
    Hasta Dónde — https://github.com/  ·  licencia MIT  */
 
-import { CONFIG, RANGO_DEDUCIBLE, cop, copCorto } from './config.js';
-import { calcular, calcularRango } from './motor.js';
+import { CONFIG, cop, copCorto } from './config.js';
+import { calcular } from './motor.js';
 import { RAMOS } from './catalogo.js';
 import { GLOSARIO } from './glosario.js';
 import { CLAUSULADOS_SEED } from './clausulados.js';
+import { DEDUCIBLES_OBSERVADOS_SEED } from './deducibles-observados.js';
+import { calcularEscenarios } from './escenarios.js';
 import { PLAZOS } from './plazos.js';
 import { ASESOR, DOCUMENTOS, PROCESO } from './asesor.js';
 import { leerPdf, generarHuella } from './lector.js';
@@ -170,18 +172,32 @@ function avanzar() {
 function mostrarResultado() {
   const d = estado.datos, ramo = RAMOS[estado.ramo];
   const sinDato = d.dedConocido === 'no';
-  const rg = sinDato ? calcularRango(d, estado.ramo) : null;
-  const r = sinDato ? rg.pesimista : calcular(d);
+  const r = sinDato ? null : calcular(d);
+  const escenarios = sinDato ? calcularEscenarios(d) : null;
   const sem = ramo.reglas(d);
-  const respuestas = generarRespuestas(d, r);
+  const respuestas = generarRespuestas(d, r, escenarios);
   const docs = [...DOCUMENTOS.comun, ...(DOCUMENTOS[estado.ramo] || [])];
 
   $('res').classList.add('on');
   $('res').innerHTML = `
     <div style="margin-top:40px">
       <span class="eyebrow">Tu radiografía · ${ramo.nombre} · ${new Date().toLocaleDateString('es-CO')}</span>
-      <h2 style="font-size:clamp(26px,4.6vw,42px);max-width:22ch">${titular(r, rg)}</h2>
+      <h2 style="font-size:clamp(26px,4.6vw,42px);max-width:22ch">${titular(r, sinDato)}</h2>
 
+      ${sinDato ? `
+      <div class="aviso" style="background:var(--fuera-luz);border-color:var(--fuera);margin-top:26px">
+        <b>Tu deducible no se puede estimar: varía de póliza a póliza.</b>
+        Las aseguradoras fijan sus condiciones y tarifas con libertad de competencia (art. 184 del EOSF), así que no hay un número típico — ni siquiera entre dos pólizas de la misma aseguradora. Abajo tienes fórmulas reales, vistas en pólizas colombianas, para que entiendas que la base y el mínimo pesan más que el porcentaje solo. Tu número exacto está en tu carátula.
+      </div>
+      <h3 style="font-size:22px;margin:28px 0 8px">Así cambia tu resultado según la fórmula</h3>
+      <p style="font-size:14px;color:var(--tinta2);max-width:62ch">Con tu pérdida de ${cop(+d.perdida||0)}, cada fórmula real da un número distinto — por eso el porcentaje solo no dice nada sin la base.</p>
+      <div class="grid g2" style="margin-top:14px">
+        ${escenarios.map(e => `<div class="card">
+          <span class="chip">${e.fuente}</span>
+          <h3>${e.etiqueta}</h3>
+          <p>Deducible: <b>${cop(e.resultado.deducibleTeorico)}</b><br>Recibirías: <b>${cop(e.resultado.indemnizacion)}</b></p>
+        </div>`).join('')}
+      </div>` : `
       <div class="cinta-caja" style="margin-top:26px">
         <div class="cinta-top">
           <div><span class="rot">Cómo se reparte tu pérdida</span>
@@ -197,29 +213,18 @@ function mostrarResultado() {
         </div>
       </div>
 
-      ${sinDato ? `<div class="aviso" style="background:var(--fuera-luz);border-color:var(--fuera)">
-        <b>Ojo: esta no es tu cifra, es un rango.</b>
-        Como no tenemos tu deducible, calculamos los dos extremos que se ven en el mercado para ${ramo.nombre.toLowerCase()}:
-        desde ${RANGO_DEDUCIBLE[estado.ramo].min.pct}% con mínimo de ${RANGO_DEDUCIBLE[estado.ramo].min.smmlv} SMMLV, hasta ${RANGO_DEDUCIBLE[estado.ramo].max.pct}% con mínimo de ${RANGO_DEDUCIBLE[estado.ramo].max.smmlv} SMMLV.
-        Tu póliza tiene un número exacto y está en la carátula. Hasta que lo tengas, trata esto como una idea de magnitud, no como una respuesta.
-      </div>` : ''}
-
       <div class="res-cifras">
-        ${sinDato ? `
-        <div class="cifra destacada"><span class="eyebrow">En el peor caso</span><div class="num">${cop(rg.pesimista.indemnizacion)}</div></div>
-        <div class="cifra destacada"><span class="eyebrow">En el mejor caso</span><div class="num">${cop(rg.optimista.indemnizacion)}</div></div>
-        <div class="cifra"><span class="eyebrow">Dato que falta</span><div class="num" style="font-size:20px;line-height:1.3">Tu deducible de terremoto</div></div>` : `
         <div class="cifra destacada"><span class="eyebrow">Recibirías aprox.</span><div class="num">${cop(r.indemnizacion)}</div></div>
         <div class="cifra"><span class="eyebrow">Sale de tu bolsillo</span><div class="num">${cop(r.deTuBolsillo)}</div></div>
-        <div class="cifra"><span class="eyebrow">Deducible aplicado</span><div class="num">${cop(r.deducibleTeorico)}</div></div>`}
+        <div class="cifra"><span class="eyebrow">Deducible aplicado</span><div class="num">${cop(r.deducibleTeorico)}</div></div>
       </div>
 
       ${r.hayInfra ? `<div class="aviso"><b>Tienes infraseguro: estás asegurado al ${(r.factor*100).toFixed(0)}% de lo que vale.</b>
         Por eso te descuentan ${cop(r.porInfraseguro)} antes de aplicar el deducible, aunque la pérdida sea parcial. Es la regla proporcional del art. 1102 del Código de Comercio. Actualizar el valor asegurado en la renovación es la corrección más barata que existe.</div>` : ''}
       ${r.mandaMinimo ? `<div class="aviso"><b>En tu caso manda el deducible mínimo, no el porcentaje.</b>
-        El mínimo en SMMLV (${cop((+d.dedMinSMMLV||0)*CONFIG.SMMLV)}) resultó mayor que el porcentaje pactado. Por eso el descuento es más alto de lo que esperabas.</div>` : ''}
+        ${r.mandaMinimoDiario ? `El mínimo en SMDLV (salario mínimo diario) resultó mayor que el porcentaje pactado.` : `El mínimo en SMMLV (${cop((+d.dedMinSMMLV||0)*CONFIG.SMMLV)}) resultó mayor que el porcentaje pactado.`} Por eso el descuento es más alto de lo que esperabas.</div>` : ''}
       ${r.indemnizacion === 0 ? `<div class="aviso"><b>Repórtalo de todas formas.</b>
-        El deducible absorbe toda la pérdida. Esto no significa que no debas avisar el siniestro: avísalo igual, porque los números cambian cuando el ajustador valora el daño real, y porque el aviso protege tus plazos.</div>` : ''}
+        El deducible absorbe toda la pérdida. Esto no significa que no debas avisar el siniestro: avísalo igual, porque los números cambian cuando el ajustador valora el daño real, y porque el aviso protege tus plazos.</div>` : ''}`}
 
       <h3 style="font-size:24px;margin:34px 0 12px">Tu semáforo</h3>
       <div class="semaforo">
@@ -260,7 +265,7 @@ function mostrarResultado() {
       ${cajaAsesor()}
     </div>`;
 
-  pintarCinta($('resCinta'), $('resRegla'), r);
+  if (!sinDato) pintarCinta($('resCinta'), $('resRegla'), r);
   $('bOtra').onclick = () => { estado={ramo:null,paso:0,datos:{}}; $('res').classList.remove('on'); pintarWizard(); $('diagnostico').scrollIntoView({behavior:'smooth'}); };
   const resumen = () =>
     `PRE-DIAGNÓSTICO — Hasta Dónde\n` +
@@ -268,11 +273,13 @@ function mostrarResultado() {
     `Fecha: ${new Date().toLocaleDateString('es-CO')}\n\n` +
     `Valor asegurado: ${cop(+d.valorAsegurado || 0)}\n` +
     `Valor real estimado: ${cop(+d.valorReal || 0)}\n` +
-    `Pérdida estimada: ${cop(r.perdida)}\n` +
-    `Deducible informado: ${(+d.dedPct || 0)}% sobre ${d.baseDeducible === 'perdida' ? 'la pérdida' : 'el valor asegurado'}, mínimo ${(+d.dedMinSMMLV || 0)} SMMLV\n\n` +
-    `Deducible calculado: ${sinDato ? 'DATO FALTANTE — el cliente no conoce su deducible' : cop(r.deducibleTeorico)}\n` +
-    (r.hayInfra ? `Infraseguro: asegurado al ${(r.factor * 100).toFixed(0)}% (${cop(r.porInfraseguro)})\n` : '') +
-    `Indemnización estimada: ${sinDato ? `entre ${cop(rg.pesimista.indemnizacion)} y ${cop(rg.optimista.indemnizacion)} (rango de mercado)` : cop(r.indemnizacion)}\n\n` +
+    `Pérdida estimada: ${cop(+d.perdida || 0)}\n` +
+    (sinDato
+      ? `Deducible: NO INFORMADO — el cliente no lo tiene a la vista. El deducible no se puede estimar: varía de póliza a póliza. Falta confirmarlo contra la carátula antes de dar una cifra.\n\n`
+      : `Deducible informado: ${(+d.dedPct || 0)}% sobre ${d.baseDeducible === 'perdida' ? 'la pérdida' : 'el valor asegurado'}, mínimo ${(+d.dedMinSMMLV || 0)} SMMLV\n\n` +
+        `Deducible calculado: ${cop(r.deducibleTeorico)}\n` +
+        (r.hayInfra ? `Infraseguro: asegurado al ${(r.factor * 100).toFixed(0)}% (${cop(r.porInfraseguro)})\n` : '') +
+        `Indemnización estimada: ${cop(r.indemnizacion)}\n\n`) +
     `Documentos pendientes: ${docs.length - marcados().length} de ${docs.length}\n` +
     marcados('pendientes').map(t => `- ${t}`).join('\n') +
     `\n\nCifras ingresadas por el cliente. Sujetas a verificación contra la carátula y el clausulado.`;
@@ -308,38 +315,38 @@ function mostrarResultado() {
   $('res').scrollIntoView({behavior:'smooth'});
 }
 
-function titular(r, rg) {
-  if (rg) return rg.optimista.indemnizacion === 0
-    ? 'Falta un dato clave, y sin él no podemos decirte una cifra.'
-    : `Entre ${cop(rg.pesimista.indemnizacion)} y ${cop(rg.optimista.indemnizacion)}, según cuál sea tu deducible.`;
+function titular(r, sinDato) {
+  if (sinDato) return 'Tu deducible no se puede estimar: varía de póliza a póliza. Mira las fórmulas reales de abajo.';
   if (r.indemnizacion === 0) return 'Con los datos que pusiste, el deducible se llevaría toda la pérdida.';
   if (r.pctRecuperado < 35)  return `Recuperarías cerca de un tercio: ${cop(r.indemnizacion)}.`;
   if (r.pctRecuperado < 70)  return `Recuperarías ${cop(r.indemnizacion)} de ${cop(r.perdida)}.`;
   return `Tu póliza responde bien: ${cop(r.indemnizacion)}.`;
 }
 
-/* Respuestas anticipadas: lo que el cliente iba a llamar a preguntar. */
-function generarRespuestas(d, r) {
+/* Respuestas anticipadas: lo que el cliente iba a llamar a preguntar.
+   r es null cuando no se conoce el deducible (ver escenarios más arriba). */
+function generarRespuestas(d, r, escenarios) {
   const a = [];
 
   if (d.dedConocido === 'no') {
-    a.push(['¿Por qué me dan un rango y no una cifra?',
-      'Porque tu deducible es el número que más mueve el resultado y no lo tenemos. Darte una cifra exacta sin ese dato sería inventarla, y con eso se toman malas decisiones. En cuanto aparezca la carátula, el cálculo deja de ser un rango.']);
-    a.push(['¿Dónde encuentro ese número?',
+    a.push(['¿Por qué no me dan ni una cifra ni un rango?',
+      'Porque el deducible no se puede estimar: las aseguradoras fijan sus condiciones y tarifas con libertad de competencia (art. 184 del EOSF), así que varía de póliza a póliza, incluso entre dos pólizas de la misma aseguradora. Un rango de mercado sonaría a dato cuando no lo es. Las fórmulas de arriba son reales, vistas en pólizas colombianas, para que entiendas el mecanismo — no una apuesta sobre cuál es la tuya.']);
+    a.push(['¿Dónde encuentro mi número exacto?',
       'En la primera hoja de la póliza, la carátula, bajo el título “deducibles”. Es una línea que dice algo como “2% del valor asegurable del ítem afectado, mínimo 3 SMMLV”. Si no tienes la póliza, la aseguradora o tu asesor te la reenvían.']);
-  }
-  if (d.dedConocido !== 'no') a.push(['¿Por qué el deducible es tan alto?',
+  } else a.push(['¿Por qué el deducible es tan alto?',
     d.baseDeducible === 'perdida'
       ? `Tu deducible se calcula sobre el valor de la pérdida: ${(+d.dedPct||0)}% de ${cop(r.perdida)}. Además hay un mínimo en salarios mínimos, y se aplica el que resulte mayor de los dos.`
       : `Porque no se calcula sobre lo que perdiste sino sobre el valor asegurado del bien: ${(+d.dedPct||0)}% de ${cop(+d.valorAsegurado||0)} da ${cop(r.deducibleTeorico)}. Así funciona el amparo de terremoto en el mercado colombiano; no es un cobro nuevo ni una penalización por reclamar.`]);
 
-  if (r.mandaMinimo) a.push(['¿Por qué no coincide con el porcentaje?',
-    `Porque en tu caso pesa más el mínimo pactado: ${(+d.dedMinSMMLV||0)} SMMLV son ${cop((+d.dedMinSMMLV||0)*CONFIG.SMMLV)}, y eso supera al porcentaje. Siempre se aplica el mayor de los dos.`]);
+  if (r && r.mandaMinimo) a.push(['¿Por qué no coincide con el porcentaje?',
+    r.mandaMinimoDiario
+      ? 'Porque en tu caso pesa más el mínimo pactado en salario mínimo diario (SMDLV), y eso supera al porcentaje. Siempre se aplica el mayor entre el porcentaje y el mínimo.'
+      : `Porque en tu caso pesa más el mínimo pactado: ${(+d.dedMinSMMLV||0)} SMMLV son ${cop((+d.dedMinSMMLV||0)*CONFIG.SMMLV)}, y eso supera al porcentaje. Siempre se aplica el mayor de los dos.`]);
 
-  if (r.hayInfra) a.push(['¿Por qué me descuentan si la pérdida fue parcial?',
+  if (r && r.hayInfra) a.push(['¿Por qué me descuentan si la pérdida fue parcial?',
     `Es la regla proporcional del art. 1102 del Código de Comercio. Como el bien está asegurado al ${(r.factor*100).toFixed(0)}% de lo que vale, la indemnización se reduce en esa misma proporción. Se corrige actualizando el valor asegurado en la renovación, y suele costar mucho menos de lo que la gente imagina.`]);
 
-  if (r.indemnizacion === 0) a.push(['Si no me van a pagar, ¿para qué reportar?',
+  if (r && r.indemnizacion === 0) a.push(['Si no me van a pagar, ¿para qué reportar?',
     'Porque las cifras de arriba son tu estimado, no el del ajustador. Cuando valoran en sitio casi siempre aparecen daños que no se habían contado, y el número cambia. Reportar no cuesta nada y mantiene el caso vivo.']);
 
   a.push(['¿Cuánto se va a demorar?',
@@ -383,14 +390,17 @@ pintarGlosario();
    ============================================================ */
 let CLAUSULADOS = JSON.parse(JSON.stringify(CLAUSULADOS_SEED));
 
+/* A propósito esta tabla NO lleva deducible ni mínimo: eso varía de póliza
+   a póliza, incluso dentro de la misma aseguradora (art. 184 EOSF), y
+   ponerlo aquí lo haría ver como una regla del producto. Los deducibles
+   que sí se han visto en pólizas reales están en la tabla de abajo,
+   fechados. Ver CLAUDE.md, regla 8. */
 function pintarClausulados() {
   $('tablaClaus').innerHTML = `
-    <thead><tr><th>Aseguradora</th><th>Producto</th><th>Ramo</th><th>Código</th>
-    <th>Deducible terremoto</th><th>Mínimo</th><th>Notas</th></tr></thead>
+    <thead><tr><th>Aseguradora</th><th>Producto</th><th>Ramo</th><th>Código</th><th>Notas</th></tr></thead>
     <tbody>${CLAUSULADOS.map(c=>`<tr>
       <td><b>${c.aseguradora}</b><br><span class="chip">${c.verificado?'verificado':'referencia de mercado'}</span></td>
       <td>${c.producto}</td><td>${c.ramo}</td><td class="mono">${c.codigo||'—'}</td>
-      <td>${c.ded||'—'}</td><td class="mono">${c.min||'—'}</td>
       <td style="max-width:340px;color:var(--tinta2);font-size:13.5px">${c.notas||''}</td>
     </tr>`).join('')}</tbody>`;
 }
@@ -404,9 +414,7 @@ $('btnAddClaus').onclick = () => {
     producto: g('Nombre del producto o póliza:'),
     ramo: g('Ramo (PH / PYME / Autos / Hogar):'),
     codigo: g('Código del clausulado (aparece al pie del clausulado):'),
-    ded: g('Deducible de terremoto, tal cual está escrito:'),
-    min: g('Deducible mínimo (ej. 3 SMMLV):'),
-    notas: g('Notas, trampas o sublímites que valga la pena recordar:'),
+    notas: g('Notas estables: qué cubre, cómo se estructura, qué verificar. Nada de deducibles: esos van en la tabla de deducibles observados.'),
     verificado: true
   };
   CLAUSULADOS.push(nuevo); pintarClausulados();
@@ -435,6 +443,62 @@ $('fileImport').onchange = e => {
 /* Carga opcional de datos externos: si existe datos/clausulados.json, manda ese. */
 fetch('datos/clausulados.json').then(r => r.ok ? r.json() : null).then(j => {
   if (Array.isArray(j) && j.length) { CLAUSULADOS = j; pintarClausulados(); }
+}).catch(()=>{});
+
+/* ============================================================
+   12.a DEDUCIBLES OBSERVADOS — render + nutrir. Dato de una póliza
+   puntual, con fecha, NUNCA presentado como regla del producto ni de la
+   aseguradora: la póliza de al lado puede traer una fórmula distinta.
+   ============================================================ */
+let OBSERVADOS = JSON.parse(JSON.stringify(DEDUCIBLES_OBSERVADOS_SEED));
+
+function pintarObservados() {
+  $('tablaObservados').innerHTML = `
+    <thead><tr><th>Aseguradora</th><th>Ramo</th><th>Amparo</th><th>Fórmula observada</th><th>Fecha</th><th>Fuente</th></tr></thead>
+    <tbody>${OBSERVADOS.map(o=>`<tr>
+      <td>${o.aseguradora}</td><td>${o.ramo}</td><td>${o.amparo}</td>
+      <td>${o.formula}</td><td class="mono">${o.fecha}</td>
+      <td style="color:var(--tinta2);font-size:13px">${o.fuente}</td>
+    </tr>`).join('')}</tbody>`;
+}
+pintarObservados();
+
+$('btnAddObs').onclick = () => {
+  const g = (t,d='') => (prompt(t, d) || '').trim();
+  const aseguradora = g('Aseguradora (o "anonimizada" si prefieres no nombrarla):'); if (!aseguradora) return;
+  const nuevo = {
+    aseguradora,
+    ramo: g('Ramo (PH / PYME / Autos / Hogar):'),
+    amparo: g('Amparo (ej. Terremoto):'),
+    formula: g('La fórmula tal cual está escrita en la carátula (ej. "2% del valor asegurable, mínimo 3 SMMLV"):'),
+    fecha: g('Fecha en que la viste (año basta):', new Date().getFullYear().toString()),
+    fuente: g('De dónde salió (ej. "carátula propia", "huella de extracción"):')
+  };
+  OBSERVADOS.push(nuevo); pintarObservados();
+  alert('Agregado. Recuerda: esto es UNA póliza en UNA fecha, no una regla del producto. Exporta el JSON para que quede permanente.');
+};
+
+$('btnExportObs').onclick = () => {
+  const blob = new Blob([JSON.stringify(OBSERVADOS, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'deducibles-observados.json'; a.click();
+};
+
+$('fileImportObs').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const arr = JSON.parse(fr.result);
+      if (!Array.isArray(arr)) throw 0;
+      OBSERVADOS = arr; pintarObservados();
+    } catch { alert('Ese archivo no tiene el formato esperado. Debe ser una lista JSON como la que produce el botón Exportar.'); }
+  };
+  fr.readAsText(f);
+};
+
+fetch('datos/deducibles-observados.json').then(r => r.ok ? r.json() : null).then(j => {
+  if (Array.isArray(j) && j.length) { OBSERVADOS = j; pintarObservados(); }
 }).catch(()=>{});
 
 /* ============================================================

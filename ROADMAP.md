@@ -63,9 +63,12 @@ de valor por esfuerzo. Lee `CLAUDE.md` antes de empezar cualquiera.
 
 No requiere código. Con clausulados reales en la mano:
 
-- Cargar deducibles verificados en `src/js/clausulados.js` o en
-  `datos/clausulados.json`, marcando `verificado: true` y anotando el código
-  de registro del clausulado.
+- Cargar condiciones generales verificadas en `src/js/clausulados.js` o en
+  `datos/clausulados.json` (sin deducible: eso no va ahí, ver CLAUDE.md
+  regla 8), marcando `verificado: true` y anotando el código de registro
+  del clausulado.
+- Cargar deducibles reales, con fecha y fuente, en
+  `src/js/deducibles-observados.js` o `datos/deducibles-observados.json`.
 - Ampliar `RAMOS` con exclusiones frecuentes por ramo, redactadas en lenguaje
   claro, con el numeral del clausulado como referencia.
 - Ampliar el glosario con los términos que la gente pregunte de verdad.

@@ -87,29 +87,43 @@ test('entradas basura no rompen el motor', () => {
   }
 });
 
-/* --- Rangos: cuando falta el deducible, nunca se inventa una cifra --- */
-import { calcularRango } from '../src/js/motor.js';
-import { RANGO_DEDUCIBLE } from '../src/js/config.js';
+/* --- Modalidades de deducible: pct (por defecto), fijo, mixto --- */
 
-test('el rango cubre los cuatro ramos y siempre ordena peor y mejor caso', () => {
-  const d = { perdida:80e6, valorAsegurado:2000e6, valorReal:2000e6, baseDeducible:'valorAsegurado' };
-  for (const ramo of Object.keys(RANGO_DEDUCIBLE)) {
-    const rg = calcularRango(d, ramo);
-    assert.ok(rg.optimista.indemnizacion >= rg.pesimista.indemnizacion,
-      `en ${ramo} el mejor caso quedó por debajo del peor`);
-    assert.ok(rg.esRango);
-  }
+test('modo "fijo": el deducible es un monto en pesos, sin porcentaje ni mínimo', () => {
+  const r = calcular({ perdida:50e6, valorAsegurado:500e6, valorReal:500e6,
+                       modoDeducible:'fijo', dedFijo:5e6, dedPct:2, dedMinSMMLV:10 });
+  cerca(r.deducibleTeorico, 5e6); // ignora dedPct y dedMinSMMLV: solo manda el fijo
+  cerca(r.indemnizacion, 45e6);
+  assert.equal(r.mandaMinimo, false);
 });
 
-test('el peor caso del rango nunca es más generoso que el deducible máximo real', () => {
-  const d = { perdida:200e6, valorAsegurado:1000e6, valorReal:1000e6, baseDeducible:'valorAsegurado' };
-  const rg = calcularRango(d, 'ph');
-  const max = RANGO_DEDUCIBLE.ph.max;
-  const directo = calcular({ ...d, dedPct:max.pct, dedMinSMMLV:max.smmlv });
-  assert.equal(rg.pesimista.indemnizacion, directo.indemnizacion);
+test('modo "mixto": el deducible es un monto fijo MÁS un porcentaje (suma, no máximo)', () => {
+  const r = calcular({ perdida:50e6, valorAsegurado:500e6, valorReal:500e6,
+                       modoDeducible:'mixto', dedFijo:2e6, dedPct:1, baseDeducible:'valorAsegurado' });
+  // 1% de 500M = 5M, más 2M fijo = 7M. Si fuera MAX (como en 'pct') sería solo 5M.
+  cerca(r.deducibleTeorico, 7e6);
+  cerca(r.indemnizacion, 43e6);
 });
 
-test('un ramo desconocido no rompe el rango', () => {
-  const rg = calcularRango({ perdida:10e6, valorAsegurado:100e6, valorReal:100e6 }, 'inexistente');
-  assert.ok(Number.isFinite(rg.pesimista.indemnizacion));
+test('sin modoDeducible, el comportamiento por defecto sigue siendo "pct" (compatibilidad)', () => {
+  const r = calcular({ perdida:80e6, valorAsegurado:2000e6, valorReal:2000e6, dedPct:2, dedMinSMMLV:3 });
+  assert.equal(r.modo, 'pct');
+  cerca(r.deducibleTeorico, 40e6);
+});
+
+test('el mínimo en SMDLV (diario) nunca se confunde con el mínimo en SMMLV (mensual)', () => {
+  const r = calcular({ perdida:50e6, valorAsegurado:100e6, valorReal:100e6,
+                       baseDeducible:'perdida', dedPct:5, dedMinSMDLV:15 });
+  // 5% de 50M = 2.5M; 15 SMDLV = 15 * (SMMLV/30), bastante menor a 15 SMMLV.
+  cerca(r.deducibleTeorico, Math.max(2.5e6, 15 * CONFIG.SMMLV / 30));
+  assert.ok(r.deducibleTeorico < 15 * CONFIG.SMMLV,
+    'un mínimo en SMDLV jamás debe calcularse como si fuera SMMLV (error de ~30x)');
+});
+
+test('manda el mínimo diario (SMDLV) cuando supera al porcentaje y al mínimo mensual', () => {
+  const r = calcular({ perdida:5e6, valorAsegurado:60e6, valorReal:60e6,
+                       baseDeducible:'perdida', dedPct:1, dedMinSMDLV:15, dedMinSMMLV:0 });
+  assert.equal(r.mandaMinimo, true);
+  assert.equal(r.mandaMinimoDiario, true);
+  cerca(r.deducibleTeorico, 15 * CONFIG.SMMLV / 30);
 });
