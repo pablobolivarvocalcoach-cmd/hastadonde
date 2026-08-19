@@ -13,17 +13,19 @@ números de seguros, no código.
 No hace falta tener siniestros ya pagados para empezar: las fases 1A y 1B se
 hacen hoy con las carátulas y los expedientes que ya tienes en trámite.
 
-**Verificado por pruebas automáticas** (`npm test`, 24 pruebas): las
-matemáticas. Que el infraseguro se aplique antes del deducible, que se tome
-el mayor entre porcentaje y mínimo en SMMLV, que la indemnización nunca sea
+**Verificado por pruebas automáticas** (`npm test`): las matemáticas. Que el
+infraseguro se aplique antes del deducible, que se tome el mayor entre
+porcentaje y mínimo (en SMMLV o en SMDLV, sin confundirlos), que las
+modalidades fija y mixta calculen bien, que la indemnización nunca sea
 negativa ni supere el valor asegurado, que las partes de la barra sumen
-exactamente la pérdida, y que sin el deducible se muestre un rango en vez de
-una cifra inventada.
+exactamente la pérdida, y que sin el deducible se muestren escenarios reales
+en vez de una cifra o un rango inventado.
 
-**No verificado, y es lo que falta:** si los rangos de mercado de
-`src/js/config.js`, los textos del catálogo y las semillas de clausulados
-corresponden a pólizas colombianas reales. Eso solo lo confirma alguien con
-clausulados en la mano.
+**No verificado, y es lo que falta:** si los escenarios de
+`src/js/escenarios.js`, las semillas de clausulados y de deducibles
+observados, y los textos del catálogo corresponden a pólizas colombianas
+reales más allá de las dos ya documentadas en `LECTOR-PATRONES.md` y su
+adenda. Eso solo lo confirma alguien con clausulados en la mano.
 
 ---
 
@@ -38,15 +40,13 @@ comprueba leyendo una sola línea de cualquier póliza vigente.
 
 Toma las carátulas de los casos que tengas en trámite y llena esto:
 
-| # | Ramo | Aseguradora | ¿Sobre qué se calcula? | % | Mínimo SMMLV | ¿Cae dentro del rango del código? |
-|---|------|-------------|------------------------|---|--------------|-----------------------------------|
-| 1 |      |             |                        |   |              |                                   |
-| 2 |      |             |                        |   |              |                                   |
-| 3 |      |             |                        |   |              |                                   |
-| 4 |      |             |                        |   |              |                                   |
-| 5 |      |             |                        |   |              |                                   |
-
-Los rangos están en `src/js/config.js`, en `RANGO_DEDUCIBLE`.
+| # | Ramo | Aseguradora | ¿Sobre qué se calcula? | % | Mínimo SMMLV o SMDLV | ¿Ya está en deducibles-observados.js? |
+|---|------|-------------|------------------------|---|-----------------------|----------------------------------------|
+| 1 |      |             |                        |   |                       |                                        |
+| 2 |      |             |                        |   |                       |                                        |
+| 3 |      |             |                        |   |                       |                                        |
+| 4 |      |             |                        |   |                       |                                        |
+| 5 |      |             |                        |   |                       |                                        |
 
 **Cómo leerlo:**
 
@@ -55,9 +55,12 @@ Los rangos están en `src/js/config.js`, en `RANGO_DEDUCIBLE`.
 - Si alguna dice que se calcula sobre la pérdida, no es un error: la
   herramienta ya permite elegirlo. Solo significa que ese caso hay que
   contestarlo distinto en el cuestionario.
-- Si algún deducible real cae **fuera** del rango declarado, el rango está
-  mal y hay que ampliarlo. Es corrección obligatoria: mientras no se haga,
-  la herramienta le muestra rangos equivocados a quien no conozca su dato.
+- Recuerda revisar si el mínimo está en SMMLV (mensual) o en SMDLV (diario):
+  son campos separados en el motor, nunca se convierte uno en el otro.
+- No hay un "rango" que corregir: el deducible varía por póliza a propósito
+  (regla 8 de `CLAUDE.md`). Lo que sí puedes hacer es cargar cada fila real
+  en `src/js/deducibles-observados.js` (con fecha y fuente), para que la
+  biblioteca tenga más ejemplos reales — nunca como una regla del producto.
 
 Con cinco carátulas revisadas ya sabes si la herramienta miente o no en lo
 que más importa.
@@ -120,18 +123,20 @@ antemano vale como prueba; una explicada después de conocer el resultado, no.
 Toma entre 3 y 5 pólizas vigentes de tu cartera, una por ramo, y busca en
 cada carátula la línea de deducible de terremoto.
 
-Compárala con los rangos declarados en `src/js/config.js`
-(`RANGO_DEDUCIBLE`). Si un deducible real cae **fuera** del rango, el rango
-está mal y hay que ampliarlo: mientras eso no se corrija, la herramienta le
-va a mostrar rangos equivocados a quien no conozca su deducible.
+Con cada póliza revisada, carga dos cosas separadas en la página:
 
-Con cada póliza revisada, carga la fila en la **Biblioteca de clausulados**
-de la página y márcala como verificada. Cada clausulado cargado hace la
-herramienta más precisa para el siguiente que la use.
+- Las condiciones generales (producto, código, qué verificar) en la
+  **Biblioteca de clausulados** — sin deducible, eso no va ahí.
+- El deducible que sí leíste, con fecha, en la tabla de **Deducibles
+  observados** — como lo que es: el dato de esa póliza, no una regla del
+  producto ni de la aseguradora.
 
-| Aseguradora | Producto | Código clausulado | Deducible terremoto | ¿Cae en el rango? |
-|-------------|----------|-------------------|---------------------|-------------------|
-|             |          |                   |                     |                   |
+Cada fila real que agregues hace la biblioteca más útil para el siguiente
+que la use, sin que nadie confunda un ejemplo con una promesa.
+
+| Aseguradora | Producto | Código clausulado | Deducible terremoto observado | Fecha |
+|-------------|----------|-------------------|--------------------------------|-------|
+|             |          |                   |                                |       |
 
 ---
 

@@ -2,7 +2,7 @@
    Sin dependencias: node build.mjs                                        */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 
-const ORDEN = ['config','motor','asesor','catalogo','glosario','clausulados','plazos','lector','ui'];
+const ORDEN = ['config','motor','asesor','catalogo','glosario','clausulados','deducibles-observados','escenarios','plazos','lector','ui'];
 
 const limpiar = src => src
   .split('\n')

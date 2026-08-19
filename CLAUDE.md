@@ -32,13 +32,15 @@ celular. No son analistas. La página tiene que ser entendible en un scroll.
    Cubierto por `test/tono.test.mjs`.
 
 3. **Nunca inventar precisión, y nunca desincentivar el reporte.** Si falta
-   un dato que mueve el resultado —sobre todo el deducible— se muestra un
-   **rango** declarado y se dice qué falta, jamás una cifra única. Y ningún
-   resultado, ni el que da cero, puede sonar a veredicto: el aviso a la
-   aseguradora es gratis y el plazo se vence, así que la herramienta siempre
-   empuja a reportar. Cubierto por `test/tono.test.mjs` y por las pruebas de
-   rango en `test/motor.test.mjs`. Antes de publicar cambios que toquen
-   cifras, lee `VALIDACION.md`.
+   un dato que mueve el resultado —sobre todo el deducible— nunca se
+   completa con una cifra ni con un rango de mercado: el deducible no se
+   puede estimar (ver regla 8). Se dice qué falta y se muestran, cuando
+   existan, **escenarios con fórmulas reales documentadas**, nunca una
+   cifra única inventada. Y ningún resultado, ni el que da cero, puede
+   sonar a veredicto: el aviso a la aseguradora es gratis y el plazo se
+   vence, así que la herramienta siempre empuja a reportar. Cubierto por
+   `test/tono.test.mjs` y `test/motor.test.mjs`. Antes de publicar cambios
+   que toquen cifras, lee `VALIDACION.md`.
 
 4. **No prometer resultados.** El copy dice "recibirías aprox.", nunca
    "recibirás". El único documento válido es el clausulado firmado. El
@@ -58,6 +60,32 @@ celular. No son analistas. La página tiene que ser entendible en un scroll.
    "asegurado", "tomador" ni "siniestro" sin explicarlos primero. Si un
    párrafo necesita releerse, está mal escrito.
 
+8. **El deducible no se puede estimar, y nunca es una característica de una
+   aseguradora o de un producto.** Verificado con fuentes: las compañías
+   fijan condiciones y tarifas bajo el régimen de libertad de competencia
+   del art. 184 del EOSF, así que cada producto —y cada póliza dentro del
+   mismo producto, hasta de la misma aseguradora— puede traer una fórmula
+   distinta. En autos hay documentados al menos 17 tipos de deducible en
+   el mercado colombiano. Por eso:
+   - Nunca escribas ni infieras **por qué** varía de una póliza a otra: no
+     lo sabemos y no hace falta afirmarlo. Nada de "cada aseguradora decide
+     esto según su apetito de riesgo" ni frases parecidas.
+   - Un deducible, aunque sea real y verificado (`LECTOR-PATRONES.md` y sus
+     adendas), nunca se presenta como la regla de un ramo, un producto o
+     una aseguradora. Siempre es el dato de **una póliza puntual, en una
+     fecha**, leído de su carátula — nunca una promesa sobre la póliza de
+     quien lee.
+   - `src/js/clausulados.js` (condiciones generales: qué existe, cómo se
+     estructura, qué verificar — estable, compartible) y
+     `src/js/deducibles-observados.js` (una fila = una póliza, una fecha,
+     una fuente) están separados a propósito. No les agregues un campo de
+     deducible al primero.
+   - Cuando la persona no conoce su deducible, `src/js/escenarios.js`
+     muestra fórmulas reales (documentadas, con fuente) aplicadas a sus
+     propios números, para enseñar que la base y el mínimo pesan más que
+     el porcentaje — nunca como estimación de cuál es la suya.
+   Cubierto por `test/tono.test.mjs`.
+
 ## El motor: orden de aplicación
 
 `src/js/motor.js` es la única fuente de verdad del cálculo. Es puro, no toca
@@ -68,10 +96,13 @@ tomado del Código de Comercio colombiano:
 1. Regla proporcional por infraseguro   (art. 1102)
       factor = valorAsegurado / valorReal   (solo si VA < VR)
       Pajustada = pérdida × factor
-2. Deducible
-      base = valorAsegurado  ← lo normal en TERREMOTO
-             o la pérdida ajustada, si así lo pactó la póliza
-      D = MAYOR entre (base × %) , (mínimo en SMMLV) , (monto fijo)
+2. Deducible — tres modalidades reales de mercado, en d.modoDeducible:
+      'pct' (por defecto):
+        base = valorAsegurado  ← lo normal en TERREMOTO
+               o la pérdida ajustada, si así lo pactó la póliza
+        D = MAYOR entre (base × %) , (mínimo en SMMLV) , (mínimo en SMDLV)
+      'fijo':   D = monto fijo en pesos, sin porcentaje ni mínimo
+      'mixto':  D = monto fijo + (base × %)   ← SUMA, no máximo
 3. Tope
       indemnización = MIN(Pajustada − D, sublímite o valor asegurado)
 ```
@@ -81,6 +112,13 @@ pérdida cuando la póliza lo calcula sobre el valor asegurado. En un edificio
 de $2.000 M con deducible del 2%, eso es la diferencia entre descontar
 $1,6 M y descontar $40 M. Ese malentendido es la razón de existir de la
 página entera: la sección "El malentendido #1" lo demuestra con deslizadores.
+
+**SMMLV (mensual) y SMDLV (diario) son campos separados** (`dedMinSMMLV`,
+`dedMinSMDLV`) y nunca se convierte uno en el otro en el cuestionario ni en
+el motor — cada uno se multiplica por su propia constante
+(`CONFIG.SMMLV` y `CONFIG.SMMLV / 30`). Confundirlos multiplica el
+deducible por ~30. Es práctica de mercado confirmada, no una rareza: ver
+`LECTOR-PATRONES.md` y sus adendas.
 
 **Invariante que ninguna refactorización puede romper:**
 
@@ -122,7 +160,12 @@ src/js/asesor.js      ASESOR (marca y contacto del intermediario),
 src/js/motor.js       Cálculo puro. Sin DOM. Con tests.
 src/js/catalogo.js    RAMOS: preguntas y semáforo por tipo de póliza ← nutrir
 src/js/glosario.js    Términos en lenguaje claro                    ← nutrir
-src/js/clausulados.js Semilla de la biblioteca abierta              ← nutrir
+src/js/clausulados.js Semilla de clausulados: condiciones generales,
+                      estables — sin deducible. Ver regla 8.        ← nutrir
+src/js/deducibles-observados.js  Semilla de deducibles observados: una
+                      fila = una póliza, una fecha, una fuente.     ← nutrir
+src/js/escenarios.js  Fórmulas reales de deducible para cuando no se
+                      conoce el propio. Usa calcular(), no lo duplica.
 src/js/plazos.js      Línea de tiempo legal                         ← nutrir
 src/js/lector.js      Lector de pólizas en PDF (prototipo). Sin DOM: recibe
                       un File, devuelve datos. pdf.js corre en el navegador,
@@ -130,6 +173,7 @@ src/js/lector.js      Lector de pólizas en PDF (prototipo). Sin DOM: recibe
 src/js/ui.js          Todo lo que toca el DOM. Solo aquí.
 build.mjs             Concatena a dist/hasta-donde.html, un archivo
 datos/clausulados.json  Si existe junto al HTML, sobreescribe la semilla
+datos/deducibles-observados.json  Igual, para la tabla de observados
 ```
 
 Separación dura: `motor.js` no conoce el DOM, `ui.js` no calcula. Si te ves

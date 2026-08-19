@@ -15,11 +15,11 @@ const NUM = (l1,l2,l3,p1,p2,p3) => ({
 
 const PASO_DEDUCIBLE = {
   tipo:'campos', preg:'El deducible de terremoto',
-  ayuda:'Búscalo en la carátula bajo “deducibles”. Suele decir algo como “2% del valor asegurable del ítem afectado, mínimo 3 SMMLV”. Si no lo tienes, dilo: preferimos darte un rango honesto antes que un número inventado.',
+  ayuda:'Búscalo en la carátula bajo “deducibles”. Suele decir algo como “2% del valor asegurable del ítem afectado, mínimo 3 SMMLV”. Si no lo tienes, dilo: el deducible varía de póliza a póliza y no se puede estimar — preferimos mostrarte fórmulas reales antes que un número inventado.',
   campos:[
     {k:'dedConocido', l:'¿Tienes el deducible a la vista?', tipo:'select',
      ops:[['si','Sí, lo estoy leyendo en la carátula'],['no','No lo encuentro o no lo sé']],
-     pista:'Si respondes que no, te mostramos un rango en vez de una cifra falsa.'},
+     pista:'Si respondes que no, te mostramos fórmulas reales de mercado en vez de una cifra inventada.'},
     {k:'baseDeducible', l:'Se calcula sobre', tipo:'select',
      ops:[['valorAsegurado','El valor asegurado del bien (lo más común)'],['perdida','El valor de la pérdida']],
      pista:'Esta sola línea puede cambiar tu indemnización en decenas de millones.'},

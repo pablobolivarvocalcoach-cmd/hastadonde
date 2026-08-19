@@ -141,7 +141,7 @@
   <div class="wrap">
     <span class="eyebrow">Datos abiertos · esta tabla es de todos</span>
     <h2 style="font-size:clamp(28px,5vw,46px);max-width:22ch">Biblioteca de clausulados</h2>
-    <p class="lede" style="margin-top:16px">Cada póliza tiene un código de clausulado registrado. Aquí los vamos guardando con su deducible de terremoto ya traducido. Agrega el tuyo y exporta el archivo para que quede en la página.</p>
+    <p class="lede" style="margin-top:16px">Cada póliza tiene un código de clausulado registrado. Aquí guardamos qué existe y qué verificar: nunca deducibles, porque esos varían de póliza a póliza incluso dentro de la misma aseguradora. Agrega el tuyo y exporta el archivo para que quede en la página.</p>
     <div class="cta-row no-print">
       <button class="btn ghost" id="btnAddClaus">+ Agregar un clausulado</button>
       <button class="btn ghost" id="btnExport">Exportar JSON</button>
@@ -150,7 +150,18 @@
     <div class="tabla-scroll">
       <table class="tabla" id="tablaClaus"></table>
     </div>
-    <p class="mono" style="font-size:12.5px;color:var(--tinta2);margin-top:14px">Los valores marcados <span class="chip">referencia de mercado</span> son rangos típicos, no el dato de tu póliza. Solo el clausulado firmado manda.</p>
+    <p class="mono" style="font-size:12.5px;color:var(--tinta2);margin-top:14px">Los marcados <span class="chip">referencia de mercado</span> son entradas genéricas del producto, no el dato de tu póliza. Solo el clausulado firmado manda.</p>
+
+    <h3 style="font-size:24px;margin:40px 0 8px">Deducibles observados</h3>
+    <p class="lede" style="margin-top:8px">Esto es distinto a la tabla de arriba: cada fila es el deducible de UNA póliza concreta, en UNA fecha — nunca la regla de un producto ni de una aseguradora. Las compañías fijan sus condiciones con libertad de competencia (art. 184 del EOSF), así que la póliza de al lado puede traer una fórmula distinta. Sirve para ver ejemplos reales, no para adivinar la tuya.</p>
+    <div class="cta-row no-print">
+      <button class="btn ghost" id="btnAddObs">+ Agregar una observación</button>
+      <button class="btn ghost" id="btnExportObs">Exportar JSON</button>
+      <label class="btn ghost" style="cursor:pointer">Importar JSON<input type="file" id="fileImportObs" accept=".json" class="oculto"></label>
+    </div>
+    <div class="tabla-scroll">
+      <table class="tabla" id="tablaObservados"></table>
+    </div>
   </div>
 </section>
 

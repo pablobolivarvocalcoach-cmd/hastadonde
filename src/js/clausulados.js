@@ -1,23 +1,24 @@
-/* SEMILLA DE CLAUSULADOS. Nunca inventes un deducible de una aseguradora
-   real: si no lo leíste en el clausulado, va como 'referencia de mercado'.
+/* SEMILLA DE CLAUSULADOS — condiciones generales: qué existe, cómo se
+   estructura, qué verificar. Estable y compartible entre pólizas del mismo
+   producto. A propósito NO lleva deducible ni mínimo: eso varía de póliza
+   a póliza incluso dentro del mismo producto y de la misma aseguradora
+   (art. 184 EOSF), así que presentarlo aquí lo haría ver como una regla
+   del producto. Los deducibles que sí se han visto en pólizas reales están
+   en deducibles-observados.js, fechados y citando su fuente.
+   Ver CLAUDE.md, regla 8.
    Hasta Dónde — https://github.com/  ·  licencia MIT  */
 
 const CLAUSULADOS_SEED = [
  {aseguradora:'Referencia de mercado', producto:'Copropiedad / PH – áreas comunes', ramo:'PH', codigo:'—',
-  ded:'1% – 3% del valor asegurable del ítem afectado', min:'3 – 10 SMMLV', verificado:false,
-  notas:'La Ley 675 de 2001 obliga a asegurar bienes comunes contra incendio y terremoto. Verifica que el amparo esté otorgado y que el valor asegurado corresponda a costo de reconstrucción actual, no al avalúo catastral.'},
+  notas:'La Ley 675 de 2001 obliga a asegurar bienes comunes contra incendio y terremoto. Verifica que el amparo esté otorgado y que el valor asegurado corresponda a costo de reconstrucción actual, no al avalúo catastral. El deducible de terremoto varía por póliza: está en tu carátula.'},
  {aseguradora:'Referencia de mercado', producto:'Multirriesgo PYME', ramo:'PYME', codigo:'—',
-  ded:'1% – 3% del valor asegurable, por ítem afectado', min:'2 – 6 SMMLV', verificado:false,
-  notas:'Edificio, maquinaria, mercancía y equipo electrónico suelen tener deducibles distintos. El lucro cesante casi siempre usa deducible en días (periodo de carencia), no en pesos.'},
+  notas:'Edificio, maquinaria, mercancía y equipo electrónico suelen tener deducibles distintos entre sí. El lucro cesante casi siempre usa deducible en días (periodo de carencia), no en pesos. El deducible de terremoto varía por póliza: está en tu carátula.'},
  {aseguradora:'Referencia de mercado', producto:'Hogar voluntario', ramo:'Hogar', codigo:'—',
-  ded:'1% – 2% del valor asegurable de la estructura', min:'1 – 3 SMMLV', verificado:false,
-  notas:'Estructura y contenidos se manejan como ítems separados. Confirma si los contenidos están a valor de reposición a nuevo o a valor real.'},
+  notas:'Estructura y contenidos se manejan como ítems separados. Confirma si los contenidos están a valor de reposición a nuevo o a valor real. El deducible de terremoto varía por póliza: está en tu carátula.'},
  {aseguradora:'Referencia de mercado', producto:'Incendio y terremoto ligado a crédito hipotecario', ramo:'Hogar', codigo:'—',
-  ded:'Según licitación de cada banco', min:'Variable', verificado:false,
   notas:'Lo contrata el banco y protege su interés asegurable. Con frecuencia cubre solo estructura y por el saldo de la deuda. Los contenidos suelen quedar por fuera. La carátula la tiene el banco y la entrega cuando se solicita.'},
  {aseguradora:'Referencia de mercado', producto:'Automóviles todo riesgo', ramo:'Autos', codigo:'—',
-  ded:'10% del valor de la pérdida, mín. 1 – 2 SMMLV (daños parciales)', min:'1 – 2 SMMLV', verificado:false,
-  notas:'Los eventos de la naturaleza suelen entrar en daños parciales y pérdida total. El SOAT no cubre el vehículo en ningún caso. Revisa el umbral de pérdida total y el tratamiento del salvamento.'}
+  notas:'Los eventos de la naturaleza suelen entrar en daños parciales y pérdida total. El SOAT no cubre el vehículo en ningún caso. Revisa el umbral de pérdida total y el tratamiento del salvamento. El mercado de autos documenta más de una decena de estructuras de deducible distintas: no hay una "típica".'}
 ];
 
 export { CLAUSULADOS_SEED };
